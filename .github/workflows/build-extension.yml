@@ -1,0 +1,42 @@
+name: Check ATBPExtension Build
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+    - ATBPExtension/src/**
+    - ATBPExtension/build.gradle
+    - .github/workflows/build-extension.yml
+  pull_request:
+    branches: [ "master" ]
+    paths:
+    - ATBPExtension/src/**
+    - ATBPExtension/build.gradle
+    - .github/workflows/build-extension.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build-extension:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+    - name: Download SFS2X
+      run: wget -qO- https://www.smartfoxserver.com/downloads/sfs2x/SFS2X_unix_2_19_0.tar.gz | tar xvz -C ~
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v3
+    - name: Execute Gradle build
+      run: ./gradlew ATBPExtension:build
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3.1.0
+      with:
+        name: ATBPExtension.jar
+        path: ATBPExtension/build/libs

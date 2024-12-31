@@ -1,0 +1,21 @@
+var config = {};
+config.httpserver = {};
+config.lobbyserver = {};
+config.sockpol = {};
+
+config.httpserver.port = 8000;
+config.httpserver.mongouri = "mongodb://admin:password@127.0.0.1:27017";
+config.httpserver.url = 'http://127.0.0.1:8000';
+
+config.sockpol.enable = true;
+config.sockpol.port = 843;
+config.sockpol.file = "static/crossdomain.xml";
+
+config.lobbyserver.enable = true;
+config.lobbyserver.port = 6778;
+config.lobbyserver.gameIp = '127.0.0.1';
+config.lobbyserver.gamePort = '9933';
+config.lobbyserver.matchmakingEnabled = false;
+config.lobbyserver.matchmakingMin = 18;
+
+module.exports = config;
