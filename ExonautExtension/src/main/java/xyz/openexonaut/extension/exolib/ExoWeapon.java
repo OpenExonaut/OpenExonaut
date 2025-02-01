@@ -13,7 +13,7 @@ public class ExoWeapon {
     public final int Radius2_Damage;
     public final float Velocity;
 
-    public ExoWeapon (JsonNode node) {
+    public ExoWeapon(JsonNode node) {
         this.Name = node.get("Name").asText();
         this.Projectiles = node.get("Projectiles").asInt();
         this.Range = node.get("Range").asInt();

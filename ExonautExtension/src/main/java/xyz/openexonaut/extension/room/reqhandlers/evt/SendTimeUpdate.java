@@ -6,11 +6,21 @@ import xyz.openexonaut.extension.exolib.*;
 import xyz.openexonaut.extension.room.reqhandlers.*;
 
 public class SendTimeUpdate {
-    public static void handle (EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
+    public static void handle(EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
         ISFSObject timeAck = new SFSObject();
         timeAck.putInt("playerId", params.getInt("playerId"));
         timeAck.putInt("msgType", 24);
-        timeAck.putInt("time", (Integer)evtHandler.getParentExtension().handleInternalMessage("getTimeLimit", null) - evtHandler.getParentExtension().getParentRoom().getVariable("time").getIntValue());
+        timeAck.putInt(
+                "time",
+                (Integer)
+                                evtHandler
+                                        .getParentExtension()
+                                        .handleInternalMessage("getTimeLimit", null)
+                        - evtHandler
+                                .getParentExtension()
+                                .getParentRoom()
+                                .getVariable("time")
+                                .getIntValue());
 
         ISFSArray eventArray = new SFSArray();
         ISFSObject response = new SFSObject();

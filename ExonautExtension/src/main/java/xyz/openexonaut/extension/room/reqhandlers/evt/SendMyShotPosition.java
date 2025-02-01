@@ -8,8 +8,12 @@ import xyz.openexonaut.extension.exolib.*;
 import xyz.openexonaut.extension.room.reqhandlers.*;
 
 public class SendMyShotPosition {
-    public static void handle (EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
-        AtomicInteger nextBulletId = (AtomicInteger)evtHandler.getParentExtension().handleInternalMessage("getNextBulletId", null);
+    public static void handle(EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
+        AtomicInteger nextBulletId =
+                (AtomicInteger)
+                        evtHandler
+                                .getParentExtension()
+                                .handleInternalMessage("getNextBulletId", null);
 
         float angle = params.getFloat("angle");
         float inc = params.getFloat("inc");
@@ -17,13 +21,22 @@ public class SendMyShotPosition {
         float y = params.getFloat("y");
         int firstBnum = nextBulletId.get();
 
-        ExoWeapon weapon = (ExoWeapon)evtHandler.getParentExtension().handleInternalMessage("getWeapon", player.weaponId);
+        ExoWeapon weapon =
+                (ExoWeapon)
+                        evtHandler
+                                .getParentExtension()
+                                .handleInternalMessage("getWeapon", player.weaponId);
         float range = weapon.Range;
         float velocity = weapon.Velocity;
         int damage = weapon.Damage;
         int projectiles = weapon.Projectiles;
 
-        ExoMod weaponMod = ((ExoSuit)evtHandler.getParentExtension().handleInternalMessage("getSuit", player.suitId)).WeaponMod;
+        ExoMod weaponMod =
+                ((ExoSuit)
+                                evtHandler
+                                        .getParentExtension()
+                                        .handleInternalMessage("getSuit", player.suitId))
+                        .WeaponMod;
         if (weaponMod.weapon.equals(weapon)) {
             range += weaponMod.Projectile_Range;
             damage += weaponMod.Damage_Per_Projectile;
@@ -32,7 +45,19 @@ public class SendMyShotPosition {
 
         float currentAngle = angle;
         for (int i = 0; i < projectiles; i++) {
-            evtHandler.getParentExtension().handleInternalMessage("addActiveBullet", new ExoBullet(nextBulletId.getAndIncrement(), range, velocity, currentAngle, damage, x, y, player));
+            evtHandler
+                    .getParentExtension()
+                    .handleInternalMessage(
+                            "addActiveBullet",
+                            new ExoBullet(
+                                    nextBulletId.getAndIncrement(),
+                                    range,
+                                    velocity,
+                                    currentAngle,
+                                    damage,
+                                    x,
+                                    y,
+                                    player));
             currentAngle -= inc;
         }
 

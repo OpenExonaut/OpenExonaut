@@ -7,11 +7,12 @@ public enum ExoRotation {
     Z("z");
 
     public final String descriptor;
-    private ExoRotation (String descriptor) {
+
+    private ExoRotation(String descriptor) {
         this.descriptor = descriptor;
     }
 
-    public static ExoRotation getRotation (String descriptor) {
+    public static ExoRotation getRotation(String descriptor) {
         for (ExoRotation e : ExoRotation.values()) {
             if (descriptor.equals(e.descriptor)) return e;
         }
