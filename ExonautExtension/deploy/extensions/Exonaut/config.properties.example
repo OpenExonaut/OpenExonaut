@@ -1,0 +1,4 @@
+mongoURI=mongodb://admin:password@127.0.0.1:27017
+httpURI=http://127.0.0.1:80
+debugGFX=true
+debugGFXScale=1
