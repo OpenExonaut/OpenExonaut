@@ -145,5 +145,10 @@ dependencies {
 
 assemble.dependsOn copySFS2XLibs
 
+tasks.jar.configure {
+    dependsOn allJars
+    onlyIf { false }
+}
+
 extractMapData.dependsOn downloadMapData
 copyDataFiles.dependsOn extractMapData
