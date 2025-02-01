@@ -1,0 +1,149 @@
+plugins {
+    id "de.undercouch.download" version "5.4.0"
+    id "com.diffplug.spotless" version "6.13.0"
+}
+
+apply plugin: 'java'
+group 'xyz.openexonaut'
+version '0.1.0-SNAPSHOT'
+
+spotless {
+    format 'misc', {
+        target '*.gradle'
+
+        trimTrailingWhitespace()
+        indentWithSpaces()
+        endWithNewline()
+    }
+    java {
+        googleJavaFormat().aosp()
+        formatAnnotations()
+        importOrder('java', 'javax', '', 'com.smartfoxserver', 'xyz.openexonaut')
+        removeUnusedImports()
+        endWithNewline()
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+}
+
+ext.getSFS2XPath = {
+    if (System.getenv('SFS2X_HOME') == null) {
+        return new File(System.getProperty('user.home'), 'SmartFoxServer_2X/SFS2X')
+    } else {
+        return new File(System.getenv('SFS2X_HOME'))
+    }
+}
+
+tasks.register('copySFS2XLibs', Copy) {
+    if (getSFS2XPath() == null) {
+        throw new FileNotFoundException('Unable to find SFS2X - please install it or set up SFS2X_HOME environment variable.')
+    }
+
+    def SFS2XLibPath = new File(getSFS2XPath(), 'lib')
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from new File(SFS2XLibPath, 'sfs2x.jar'), new File(SFS2XLibPath, 'sfs2x-core.jar')
+    into layout.projectDirectory.dir("lib")
+}
+
+tasks.register('downloadMapData', Download) {
+    src 'https://archive.org/download/openexonaut-20250131/openexonaut-20250131-world_data.zip'
+    dest buildDir
+    overwrite false
+}
+
+tasks.register('extractMapData', Copy) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from zipTree(layout.buildDirectory.file("openexonaut-20250131-world_data.zip"))
+    into new File(getSFS2XPath(), 'extensions/Exonaut/')
+}
+
+tasks.register('copyDataFiles', Copy) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from layout.projectDirectory.dir('deploy')
+    into getSFS2XPath()
+}
+
+tasks.register('deployExonautLib', Copy) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    from layout.buildDirectory.file('libs/ExonautLib.jar')
+    into new File(getSFS2XPath(), 'extensions/__lib__/')
+}
+
+tasks.register('deployExonautZoneExtension', Copy) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    from layout.buildDirectory.file('libs/ExonautZoneExtension.jar')
+    into new File(getSFS2XPath(), 'extensions/Exonaut/')
+}
+
+tasks.register('deployExonautRoomExtension', Copy) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    from layout.buildDirectory.file('libs/ExonautRoomExtension.jar')
+    into new File(getSFS2XPath(), 'extensions/Exonaut/')
+}
+
+tasks.register('deployAllJars') {
+    dependsOn tasks.deployExonautLib
+    dependsOn tasks.deployExonautZoneExtension
+    dependsOn tasks.deployExonautRoomExtension
+}
+
+tasks.withType(JavaCompile) {
+    options.release = 11
+}
+
+task libJar(type: Jar) {
+    archiveFileName = "ExonautLib.jar"
+    from(sourceSets.main.output) {
+        include "xyz/openexonaut/extension/exolib/**"
+    }
+}
+
+task zoneJar(type: Jar) {
+    archiveFileName = "ExonautZoneExtension.jar"
+    manifest {
+        attributes('Main-Class': 'xyz.openexonaut.extension.zone.ExonautZoneExtension')
+    }
+    from(sourceSets.main.output) {
+        include "xyz/openexonaut/extension/zone/**"
+    }
+}
+
+task roomJar(type: Jar) {
+    archiveFileName = "ExonautRoomExtension.jar"
+    manifest {
+        attributes('Main-Class': 'xyz.openexonaut.extension.room.ExonautRoomExtension')
+    }
+    from(sourceSets.main.output) {
+        include "xyz/openexonaut/extension/room/**"
+    }
+}
+
+tasks.register('allJars') {
+    dependsOn tasks.libJar
+    dependsOn tasks.zoneJar
+    dependsOn tasks.roomJar
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven { url "https://jitpack.io" }
+}
+
+dependencies {
+    implementation files('lib/sfs2x-core.jar', 'lib/sfs2x.jar')
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-xml', version: '2.9.0'
+    implementation 'org.mongodb:mongodb-driver-sync:5.2.0'
+}
+
+assemble.dependsOn copySFS2XLibs
+
+extractMapData.dependsOn downloadMapData
+copyDataFiles.dependsOn extractMapData

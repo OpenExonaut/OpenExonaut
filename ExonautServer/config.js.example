@@ -1,0 +1,13 @@
+var config = {};
+config.httpserver = {};
+config.sockpol = {};
+
+config.httpserver.port = 80;
+config.httpserver.mongouri = "mongodb://admin:password@127.0.0.1:27017";
+config.httpserver.url = 'http://127.0.0.1:80';
+
+config.sockpol.enable = true;
+config.sockpol.port = 843;
+config.sockpol.file = "static/crossdomain.xml";
+
+module.exports = config;

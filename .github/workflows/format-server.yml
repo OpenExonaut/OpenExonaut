@@ -1,15 +1,15 @@
-name: Check ATBPServer Formatting
+name: Check ExonautServer Formatting
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
-    - ATBPServer/**.js
+    - ExonautServer/**.js
     - .github/workflows/format-server.yml
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
-    - ATBPServer/**.js
+    - ExonautServer/**.js
     - .github/workflows/format-server.yml
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: './ATBPServer'
+        working-directory: './ExonautServer'
 
     steps:
     - uses: actions/checkout@v3

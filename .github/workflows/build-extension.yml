@@ -1,17 +1,17 @@
-name: Check ATBPExtension Build
+name: Check ExonautExtension Build
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
-    - ATBPExtension/src/**
-    - ATBPExtension/build.gradle
+    - ExonautExtension/src/**
+    - ExonautExtension/build.gradle
     - .github/workflows/build-extension.yml
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
-    - ATBPExtension/src/**
-    - ATBPExtension/build.gradle
+    - ExonautExtension/src/**
+    - ExonautExtension/build.gradle
     - .github/workflows/build-extension.yml
 
 permissions:
@@ -34,9 +34,9 @@ jobs:
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v3
     - name: Execute Gradle build
-      run: ./gradlew ATBPExtension:build
+      run: ./gradlew ExonautExtension:build
     - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v3.1.0
+      uses: actions/upload-artifact@v4
       with:
-        name: ATBPExtension.jar
-        path: ATBPExtension/build/libs
+        name: ExonautExtension
+        path: ExonautExtension/build/libs

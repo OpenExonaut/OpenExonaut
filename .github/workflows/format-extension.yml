@@ -1,15 +1,15 @@
-name: Check ATBPExtension Formatting
+name: Check ExonautExtension Formatting
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
-    - ATBPExtension/src/**
+    - ExonautExtension/src/**
     - .github/workflows/format-extension.yml
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
     paths:
-    - ATBPExtension/src/**
+    - ExonautExtension/src/**
     - .github/workflows/format-extension.yml
 
 permissions:
@@ -32,4 +32,4 @@ jobs:
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v3
     - name: Execute Gradle check
-      run: ./gradlew ATBPExtension:spotlessCheck
+      run: ./gradlew ExonautExtension:spotlessCheck
