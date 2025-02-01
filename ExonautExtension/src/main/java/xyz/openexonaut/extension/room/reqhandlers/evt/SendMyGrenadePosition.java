@@ -8,7 +8,7 @@ import xyz.openexonaut.extension.exolib.*;
 import xyz.openexonaut.extension.room.reqhandlers.*;
 
 public class SendMyGrenadePosition {
-    public static void handle (EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
+    public static void handle(EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
         ISFSObject newGrenade = new SFSObject();
         newGrenade.putInt("playerId", params.getInt("playerId"));
         newGrenade.putInt("msgType", 5);
@@ -17,8 +17,15 @@ public class SendMyGrenadePosition {
         newGrenade.putFloat("x", params.getFloat("x"));
         newGrenade.putFloat("y", params.getFloat("y"));
 
-        // is there a reason why the client sends its own number of thrown grenades in the input "num" field?
-        newGrenade.putInt("num", ((AtomicInteger)evtHandler.getParentExtension().handleInternalMessage("getNextGrenadeId", null)).getAndIncrement());
+        // is there a reason why the client sends its own number of thrown grenades in the input
+        // "num" field?
+        newGrenade.putInt(
+                "num",
+                ((AtomicInteger)
+                                evtHandler
+                                        .getParentExtension()
+                                        .handleInternalMessage("getNextGrenadeId", null))
+                        .getAndIncrement());
 
         ISFSArray eventArray = new SFSArray();
         ISFSObject response = new SFSObject();

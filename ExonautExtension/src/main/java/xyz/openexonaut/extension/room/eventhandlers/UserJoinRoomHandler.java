@@ -13,10 +13,11 @@ public class UserJoinRoomHandler extends BaseServerEventHandler {
     public static final int MIN_PLAYERS = 2;
 
     @Override
-    public void handleServerEvent (ISFSEvent event) {
-        User user = (User)event.getParameter(SFSEventParam.USER);
-        ExoPlayer player = (ExoPlayer)user.getProperty("ExoPlayer");
-        ExoPlayer[] players = (ExoPlayer[])getParentExtension().handleInternalMessage("getPlayers", null);
+    public void handleServerEvent(ISFSEvent event) {
+        User user = (User) event.getParameter(SFSEventParam.USER);
+        ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
+        ExoPlayer[] players =
+                (ExoPlayer[]) getParentExtension().handleInternalMessage("getPlayers", null);
 
         int i;
         for (i = 0; i < players.length; i++) {
@@ -31,10 +32,15 @@ public class UserJoinRoomHandler extends BaseServerEventHandler {
         }
 
         if (getParentExtension().getParentRoom().getPlayersList().size() >= MIN_PLAYERS) {
-            if (getParentExtension().getParentRoom().getVariable("state").getStringValue().equals("wait_for_min_players")) {
+            if (getParentExtension()
+                    .getParentRoom()
+                    .getVariable("state")
+                    .getStringValue()
+                    .equals("wait_for_min_players")) {
                 List<RoomVariable> variableUpdate = new ArrayList<>();
                 variableUpdate.add(new SFSRoomVariable("state", "countdown"));
-                getApi().setRoomVariables(null, getParentExtension().getParentRoom(), variableUpdate);
+                getApi().setRoomVariables(
+                                null, getParentExtension().getParentRoom(), variableUpdate);
 
                 getParentExtension().handleInternalMessage("startCountdown", null);
             }

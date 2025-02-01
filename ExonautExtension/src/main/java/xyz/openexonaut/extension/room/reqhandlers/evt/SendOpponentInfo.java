@@ -6,10 +6,12 @@ import xyz.openexonaut.extension.exolib.*;
 import xyz.openexonaut.extension.room.reqhandlers.*;
 
 public class SendOpponentInfo {
-    public static void handle (EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
+    public static void handle(EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
         // TODO: is this really how this works?
         ISFSArray eventArray = new SFSArray();
-        ExoPlayer[] players = (ExoPlayer[])evtHandler.getParentExtension().handleInternalMessage("getPlayers", null);
+        ExoPlayer[] players =
+                (ExoPlayer[])
+                        evtHandler.getParentExtension().handleInternalMessage("getPlayers", null);
         for (int i = 0; i < players.length; i++) {
             ExoPlayer opp = players[i];
             if (opp != null) {

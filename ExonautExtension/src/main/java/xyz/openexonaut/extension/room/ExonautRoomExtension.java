@@ -2,12 +2,12 @@ package xyz.openexonaut.extension.room;
 
 // TODO: stop the ~5-10s hang on other clients when user closes game
 
+import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
-import java.awt.*;
 import javax.swing.*;
 
 import com.smartfoxserver.v2.core.*;
@@ -26,7 +26,8 @@ public class ExonautRoomExtension extends SFSExtension {
     private ExoWeapon[] weapons = null;
 
     private final ExoPlayer[] players = new ExoPlayer[8];
-    // this "efficiently" handles concurrency automagically; the copy-on-write arraylist is probably slower given the volatility
+    // this "efficiently" handles concurrency automagically; the copy-on-write arraylist is probably
+    // slower given the volatility
     private final Set<ExoBullet> activeBullets = ConcurrentHashMap.newKeySet();
 
     private final AtomicInteger nextBulletId = new AtomicInteger(1);
@@ -43,11 +44,22 @@ public class ExonautRoomExtension extends SFSExtension {
     private int timeLimit = 0;
 
     @Override
-    public void init () {
+    public void init() {
         room = this.getParentRoom();
-        map = (ExoMap)this.getParentZone().getExtension().handleInternalMessage("getMap", room.getVariable("mapId").getIntValue());
-        suits = (ExoSuit[])this.getParentZone().getExtension().handleInternalMessage("getSuits", null);
-        weapons = (ExoWeapon[])this.getParentZone().getExtension().handleInternalMessage("getWeapons", null);
+        map =
+                (ExoMap)
+                        this.getParentZone()
+                                .getExtension()
+                                .handleInternalMessage(
+                                        "getMap", room.getVariable("mapId").getIntValue());
+        suits =
+                (ExoSuit[])
+                        this.getParentZone().getExtension().handleInternalMessage("getSuits", null);
+        weapons =
+                (ExoWeapon[])
+                        this.getParentZone()
+                                .getExtension()
+                                .handleInternalMessage("getWeapons", null);
         timeLimit = (room.getVariable("mode").getStringValue().equals("team")) ? 900 : 600;
 
         addEventHandler(SFSEventType.USER_JOIN_ROOM, UserJoinRoomHandler.class);
@@ -60,7 +72,7 @@ public class ExonautRoomExtension extends SFSExtension {
     }
 
     @Override
-    public void destroy () {
+    public void destroy() {
         if (timeHandle != null) {
             timeHandle.cancel(true);
         }
@@ -74,7 +86,7 @@ public class ExonautRoomExtension extends SFSExtension {
     }
 
     @Override
-    public Object handleInternalMessage (String command, Object parameters) {
+    public Object handleInternalMessage(String command, Object parameters) {
         switch (command) {
             case "getNextBulletId":
                 return nextBulletId;
@@ -85,13 +97,15 @@ public class ExonautRoomExtension extends SFSExtension {
             case "getPlayers":
                 return players;
             case "getSuit":
-                return suits[(Integer)parameters - 1];
+                return suits[(Integer) parameters - 1];
             case "getWeapon":
-                return weapons[(Integer)parameters - 1];
+                return weapons[(Integer) parameters - 1];
             case "addActiveBullet":
-                return activeBullets.add((ExoBullet)parameters);
+                return activeBullets.add((ExoBullet) parameters);
             case "startCountdown":
-                timeHandle = getApi().getSystemScheduler().scheduleAtFixedRate(new ExoTimer(), 1, 1, TimeUnit.SECONDS);
+                timeHandle =
+                        getApi().getSystemScheduler()
+                                .scheduleAtFixedRate(new ExoTimer(), 1, 1, TimeUnit.SECONDS);
                 return null;
             default:
                 trace(ExtensionLogLevel.ERROR, "Invalid internal message " + command);
@@ -102,17 +116,19 @@ public class ExonautRoomExtension extends SFSExtension {
     private class ExoPeek extends JPanel implements Runnable {
         private JFrame frame = new JFrame("ExoPeek");
         private Container canvas = frame.getContentPane();
-        public ExoPeek () {
-            this.setPreferredSize(new Dimension((int)map.size.x, (int)map.size.y));
+
+        public ExoPeek() {
+            this.setPreferredSize(new Dimension((int) map.size.x, (int) map.size.y));
             canvas.add(this);
             frame.pack();
             frame.setResizable(false);
             frame.setVisible(true);
             this.repaint();
         }
+
         @Override
-        public void paintComponent (Graphics g) {
-            g.translate((int)map.translate.x, (int)map.translate.y);
+        public void paintComponent(Graphics g) {
+            g.translate((int) map.translate.x, (int) map.translate.y);
             map.draw(g);
             for (int i = 0; i < players.length; i++) {
                 ExoPlayer player = players[i];
@@ -125,15 +141,16 @@ public class ExonautRoomExtension extends SFSExtension {
                 int bulletX = 0;
                 int bulletY = 0;
                 synchronized (bullet) {
-                    bulletX = (int)bullet.x;
-                    bulletY = (int)bullet.y;
+                    bulletX = (int) bullet.x;
+                    bulletY = (int) bullet.y;
                 }
                 g.drawLine(bulletX, bulletY, bulletX, bulletY);
             }
-            g.translate(-(int)map.translate.x, -(int)map.translate.y);
+            g.translate(-(int) map.translate.x, -(int) map.translate.y);
         }
+
         @Override
-        public void run () {
+        public void run() {
             this.repaint();
         }
     }
@@ -143,7 +160,7 @@ public class ExonautRoomExtension extends SFSExtension {
         private int gameTime = 0;
 
         @Override
-        public void run () {
+        public void run() {
             if (qTimer > 0) {
                 qTimer--;
                 if (qTimer == 0) {
@@ -153,16 +170,21 @@ public class ExonautRoomExtension extends SFSExtension {
 
                     peek = new ExoPeek();
 
-                    // client state update targets 8 Hz. i think that's too infrequent, so let's start at 20 Hz and go from there
-                    physicsHandle = sfsApi.getSystemScheduler().scheduleAtFixedRate(new ExoPhysicsTicker(), 25, 50, TimeUnit.MILLISECONDS);
-                    peekHandle = sfsApi.getSystemScheduler().scheduleAtFixedRate(peek, 50, 50, TimeUnit.MILLISECONDS);
+                    // client state update targets 8 Hz. i think that's too infrequent, so let's
+                    // start at 20 Hz and go from there
+                    physicsHandle =
+                            sfsApi.getSystemScheduler()
+                                    .scheduleAtFixedRate(
+                                            new ExoPhysicsTicker(), 25, 50, TimeUnit.MILLISECONDS);
+                    peekHandle =
+                            sfsApi.getSystemScheduler()
+                                    .scheduleAtFixedRate(peek, 50, 50, TimeUnit.MILLISECONDS);
                 }
                 ISFSObject timerUpdate = new SFSObject();
                 timerUpdate.putInt("queueTime", qTimer);
 
                 send("queueTime", timerUpdate, room.getPlayersList());
-            }
-            else {
+            } else {
                 List<RoomVariable> timeUpdate = new ArrayList<>();
                 timeUpdate.add(new SFSRoomVariable("time", ++gameTime));
                 sfsApi.setRoomVariables(null, room, timeUpdate);
@@ -181,8 +203,9 @@ public class ExonautRoomExtension extends SFSExtension {
 
     private class ExoPhysicsTicker implements Runnable {
         private long lastNano = System.nanoTime();
+
         @Override
-        public void run () {
+        public void run() {
             long nano = System.nanoTime();
             float deltaTime = (nano - lastNano) / 1_000_000_000f;
             lastNano = nano;
@@ -202,7 +225,7 @@ public class ExonautRoomExtension extends SFSExtension {
                         bullet.y += raycastY;
                         bullet.dist += raycastDist;
 
-                        if (bullet.dist > bullet.range/* || map.collision(bullet.x, bullet.y)*/) {
+                        if (bullet.dist > bullet.range /* || map.collision(bullet.x, bullet.y)*/) {
                             expiringBullets.add(bullet);
                             break;
                         }

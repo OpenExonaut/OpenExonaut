@@ -9,7 +9,7 @@ public class ExoMod {
     public final float Projectile_Range;
     public final int Damage_Per_Projectile;
 
-    public ExoMod (JsonNode node, ExoWeapon[] allWeapons) {
+    public ExoMod(JsonNode node, ExoWeapon[] allWeapons) {
         this.weapon = allWeapons[node.get("WeaponID").asInt() - 1];
         this.Name = node.get("Name").asText();
         this.Num_Projectiles = node.get("Num_Projectiles").asInt();

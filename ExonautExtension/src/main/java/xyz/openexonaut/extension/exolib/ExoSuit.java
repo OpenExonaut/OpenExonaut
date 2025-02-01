@@ -12,7 +12,7 @@ public class ExoSuit {
     public final int Timer_Sp_Weps;
     public final int CoolDown_Sp_Weps;
 
-    public ExoSuit (JsonNode node, ExoMod[] allMods) {
+    public ExoSuit(JsonNode node, ExoMod[] allMods) {
         this.Name = node.get("Name").asText();
         this.WeaponMod = allMods[node.get("WeaponMod").asInt() - 1];
         this.Health = node.get("Health").asInt();
