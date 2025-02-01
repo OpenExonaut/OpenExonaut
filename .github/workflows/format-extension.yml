@@ -32,4 +32,4 @@ jobs:
     - name: Set up Gradle
       uses: gradle/actions/setup-gradle@v3
     - name: Execute Gradle check
-      run: ./gradlew ExonautExtension:spotlessCheck
+      run: chmod +x ./gradlew && ./gradlew ExonautExtension:spotlessCheck

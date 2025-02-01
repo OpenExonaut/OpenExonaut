@@ -4,7 +4,14 @@ const crypto = require('crypto');
 const XMLWriter = require('xml-writer');
 
 module.exports = {
-  handleRegister: function (username, password, names, forgot, collection, gameData) {
+  handleRegister: function (
+    username,
+    password,
+    names,
+    forgot,
+    collection,
+    gameData
+  ) {
     return new Promise(function (resolve, reject) {
       bcrypt.hash(password, 10, (err, hash) => {
         var name = '';
@@ -29,7 +36,14 @@ module.exports = {
             } else {
               bcrypt.hash(forgot, 10, (er, has) => {
                 dbOp
-                  .createNewUser(username, name, hash, has, collection, gameData)
+                  .createNewUser(
+                    username,
+                    name,
+                    hash,
+                    has,
+                    collection,
+                    gameData
+                  )
                   .then((u) => {
                     resolve(u);
                   })
@@ -102,22 +116,27 @@ module.exports = {
             //User exists
             if (user.player.faction == 0) {
               //User has not yet joined a faction
-              resolve(`<result status="newplayer" TEGID="${TEGid}" LoginName="${authid}"/>`)
-            }
-            else {
-              xw = new XMLWriter;
-              xw.startDocument().startElement('result')
+              resolve(
+                `<result status="newplayer" TEGID="${TEGid}" LoginName="${authid}"/>`
+              );
+            } else {
+              xw = new XMLWriter();
+              xw.startDocument()
+                .startElement('result')
                 .writeAttribute('status', 'exoplayer')
                 .writeAttribute('TEGID', TEGid)
                 .writeAttribute('LoginName', authid)
-                .writeAttribute('ID', Number('0x' + user.session.token.split('-')[0].slice(0, -1))) // needs to fit an i32. any better ideas?
+                .writeAttribute(
+                  'ID',
+                  Number('0x' + user.session.token.split('-')[0].slice(0, -1))
+                ) // needs to fit an i32. any better ideas?
                 .writeAttribute('Faction', user.player.Faction)
                 .writeAttribute('Level', user.player.Level)
                 .writeAttribute('XP', user.player.XP)
                 .writeAttribute('Credits', user.player.Credits)
                 .writeAttribute('SessionID', user.session.token)
                 .writeAttribute('LastSuit', user.player.LastSuit);
-              
+
               xw.startElement('suitsOwned');
               for (suit in user.inventory) {
                 xw.writeElement('suit', suit);
@@ -143,44 +162,68 @@ module.exports = {
         });
     });
   },
-  handleInstall: function(TEGid, login, suitToEquip, faction, collection, gameData) {
+  handleInstall: function (
+    TEGid,
+    login,
+    suitToEquip,
+    faction,
+    collection,
+    gameData
+  ) {
     // /exonaut/ExonautPlayerInstall PROVIDES TEGid, login, dname, suit, faction RETURNS a lot
     return new Promise(function (resolve, reject) {
       try {
-        const foundSuit = gameData.suits.find((suit) => suit.ID === suitToEquip);
+        const foundSuit = gameData.suits.find(
+          (suit) => suit.ID === suitToEquip
+        );
         if (foundSuit.Guest == '1') {
           if (foundSuit.Faction == faction) {
-            collection.findOne({ 'user.TEGid': TEGid, 'user.authid': login }).then((user) => {
-              if (user.Faction == 0) {
-                collection.updateOne(
-                  { 'user.TEGid': TEGid, 'user.authid': login },
-                  { $set: { 'player.LastSuit': suitToEquip, 'player.Faction': faction } }
-                ).then(() => {
-                  xw = new XMLWriter;
-                  xw.startDocument().startElement('result')
-                    .writeAttribute('status', 'new')
-                    .writeAttribute('id', Number('0x' + user.session.token.split('-')[0].slice(0, -1)));
-                  
-                  xw.startElement('suitsOwned');
-                  for (suit in user.inventory) {
-                    xw.writeElement('suit', suit);
-                  }
-                  xw.endElement();
+            collection
+              .findOne({ 'user.TEGid': TEGid, 'user.authid': login })
+              .then((user) => {
+                if (user.Faction == 0) {
+                  collection
+                    .updateOne(
+                      { 'user.TEGid': TEGid, 'user.authid': login },
+                      {
+                        $set: {
+                          'player.LastSuit': suitToEquip,
+                          'player.Faction': faction,
+                        },
+                      }
+                    )
+                    .then(() => {
+                      xw = new XMLWriter();
+                      xw.startDocument()
+                        .startElement('result')
+                        .writeAttribute('status', 'new')
+                        .writeAttribute(
+                          'id',
+                          Number(
+                            '0x' + user.session.token.split('-')[0].slice(0, -1)
+                          )
+                        );
 
-                  // TODO
-                  xw.writeElement('missionsCompleted');
+                      xw.startElement('suitsOwned');
+                      for (suit in user.inventory) {
+                        xw.writeElement('suit', suit);
+                      }
+                      xw.endElement();
 
-                  // TODO
-                  xw.writeElement('missionsProgress');
+                      // TODO
+                      xw.writeElement('missionsCompleted');
 
-                  xw.endElement();
-                  xw.endDocument();
-                  resolve(xw.toString());
-                });
-              } else {
-                reject(new Error('Player is already installed'));
-              }
-            });
+                      // TODO
+                      xw.writeElement('missionsProgress');
+
+                      xw.endElement();
+                      xw.endDocument();
+                      resolve(xw.toString());
+                    });
+                } else {
+                  reject(new Error('Player is already installed'));
+                }
+              });
           } else {
             reject(new Error('Suit does not belong to faction'));
           }
@@ -196,40 +239,53 @@ module.exports = {
     // /exonaut/ExonautPlayerBuySuit PROVIDES TEGid, exId, buySuitId, toCharge=1 RETURNS result
     return new Promise(function (resolve, reject) {
       try {
-        const foundSuit = gameData.suits.find((suit) => suit.ID === suitToPurchase);
+        const foundSuit = gameData.suits.find(
+          (suit) => suit.ID === suitToPurchase
+        );
         if (foundSuit) {
           //TODO: This could be simplified
           const exIdRegex = new RegExp(`^${Number(exId).toString(16)}`, 'i');
-          collection.findOne({ 'user.TEGid': TEGid, 'session.token': { $regex: exIdRegex }, }).then((user) => {
-            if (user != null) {
-              if (user.player.Credits >= foundSuit.Cost) {
-                collection
-                  .updateOne(
-                    { 'user.TEGid': TEGid, 'session.token': { $regex: exIdRegex }, },
-                    { $inc: { 'player.Credits': foundSuit.Cost * -1 } }
-                  )
-                  .then(() => {
-                    //Subtracts the credits from the player
-                    collection
-                      .updateOne(
-                        { 'user.TEGid': TEGid, 'session.token': { $regex: exIdRegex }, },
-                        { $push: { inventory: suitToPurchase } }
-                      )
-                      .then((r) => {
-                        if (r.modifiedCount == 0) {
-                          resolve('<result status="fail"/>');
-                        } else {
-                          resolve('<result status="success"/>');
-                        }
-                      });
-                  });
+          collection
+            .findOne({
+              'user.TEGid': TEGid,
+              'session.token': { $regex: exIdRegex },
+            })
+            .then((user) => {
+              if (user != null) {
+                if (user.player.Credits >= foundSuit.Cost) {
+                  collection
+                    .updateOne(
+                      {
+                        'user.TEGid': TEGid,
+                        'session.token': { $regex: exIdRegex },
+                      },
+                      { $inc: { 'player.Credits': foundSuit.Cost * -1 } }
+                    )
+                    .then(() => {
+                      //Subtracts the credits from the player
+                      collection
+                        .updateOne(
+                          {
+                            'user.TEGid': TEGid,
+                            'session.token': { $regex: exIdRegex },
+                          },
+                          { $push: { inventory: suitToPurchase } }
+                        )
+                        .then((r) => {
+                          if (r.modifiedCount == 0) {
+                            resolve('<result status="fail"/>');
+                          } else {
+                            resolve('<result status="success"/>');
+                          }
+                        });
+                    });
+                } else {
+                  reject(new Error('Not enough credits'));
+                }
               } else {
-                reject(new Error('Not enough credits'));
+                reject(new Error('User not found'));
               }
-            } else {
-              reject(new Error('User not found'));
-            }
-          });
+            });
         } else {
           reject(new Error('Suit not found'));
         }
