@@ -24,6 +24,8 @@ public class ExonautZoneExtension extends SFSExtension {
     private boolean debugGFX = false;
     private float debugGFXScale = 1;
 
+    private ExoPhysics physics;
+
     @Override
     public void init() {
         props = getConfigProperties();
@@ -46,6 +48,8 @@ public class ExonautZoneExtension extends SFSExtension {
         debugGFX = Boolean.parseBoolean(props.getProperty("debugGFX"));
         debugGFXScale = Float.parseFloat(props.getProperty("debugGFXScale"));
 
+        physics = new ExoPhysics();
+
         for (int i = 0; i < 9; i++) {
             mapLoaders[i] =
                     new MapLoader(
@@ -59,12 +63,14 @@ public class ExonautZoneExtension extends SFSExtension {
                 ExoInt2DVector scaledDrawSize = mapLoaders[i].getDrawSize(debugGFXScale);
                 maps[i] =
                         new ExoMap(
+                                mapLoaders[i].getMesh(physics),
                                 mapLoaders[i].getImage(
                                         debugGFXScale, scaledDrawTranslate, scaledDrawSize),
                                 scaledDrawTranslate,
-                                scaledDrawSize);
+                                scaledDrawSize,
+                                debugGFXScale);
             } else {
-                maps[i] = new ExoMap(null, null, null);
+                maps[i] = new ExoMap(mapLoaders[i].getMesh(physics), null, null, null, 0);
             }
         }
 
@@ -100,6 +106,8 @@ public class ExonautZoneExtension extends SFSExtension {
                 return suits;
             case "getWeapons":
                 return weapons;
+            case "getPhysics":
+                return physics;
             default:
                 trace(ExtensionLogLevel.ERROR, "Invalid internal message " + command);
                 return null;

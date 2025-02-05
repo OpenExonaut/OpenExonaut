@@ -5,6 +5,13 @@ import java.awt.image.*;
 import java.io.*;
 import java.nio.file.*;
 
+import org.lwjgl.system.*;
+
+import physx.common.*;
+import physx.cooking.*;
+import physx.geometry.*;
+import physx.support.*;
+
 import xyz.openexonaut.extension.exolib.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 
@@ -18,8 +25,8 @@ public class MapLoader {
     private final ExoInt2DVector drawTranslate;
     private final ExoInt2DVector drawSize;
 
-    private final ExoRotation selfRotation;
-    private final ExoRotation fatherRotation;
+    private final String selfRotation;
+    private final String fatherRotation;
     private final Exo3DVector selfScale;
     private final Exo3DVector selfPosition;
     private final Exo3DVector fatherScale;
@@ -77,9 +84,9 @@ public class MapLoader {
         String[] teamItemSpawnStrings = teamItemSpawnFile.split(", ");
         String[] ffaItemSpawnStrings = ffaItemSpawnFile.split(", ");
 
-        selfRotation = ExoRotation.getRotation(getProperty(collisionInfoStrings, "rotation"));
+        selfRotation = getProperty(collisionInfoStrings, "rotation");
         fatherRotation =
-                ExoRotation.getRotation(getProperty(collisionInfoStrings, "father_rotation"));
+                getProperty(collisionInfoStrings, "father_rotation");
         drawTranslate =
                 getInt2DVector(getProperty(collisionInfoStrings, "draw_translate").split(", "));
         drawSize = getInt2DVector(getProperty(collisionInfoStrings, "draw_size").split(", "));
@@ -164,7 +171,7 @@ public class MapLoader {
 
     private static String getProperty(String[] properties, String property) {
         for (String s : properties) {
-            if (s.startsWith(property)) return s.substring(s.indexOf(":") + 2);
+            if (s.startsWith(property)) return s.substring(s.indexOf(':') + 2);
         }
         System.err.println("No such property " + property + "!");
         System.exit(1);
@@ -207,5 +214,46 @@ public class MapLoader {
 
     public ExoInt2DVector getDrawSize(float scalar) {
         return drawSize.scale(scalar);
+    }
+
+    public PxTriangleMeshGeometry getMesh(ExoPhysics physics) {
+        try (MemoryStack mem = MemoryStack.stackPush()) {
+                PxArray_PxVec3 pointVector = new PxArray_PxVec3(modifiedCoords.length);
+                PxArray_PxU32 indexVector = new PxArray_PxU32(triangles.length * 3);
+
+                PxVec3 tmpVec = PxVec3.createAt(mem, MemoryStack::nmalloc, 0f, 0f, 0f);
+                for (int i = 0; i < modifiedCoords.length; i++) {
+                        tmpVec.setX(modifiedCoords[i].x);
+                        tmpVec.setY(modifiedCoords[i].y);
+                        tmpVec.setZ(modifiedCoords[i].z);
+                        pointVector.pushBack(tmpVec);
+                }
+
+                for (int i = 0; i < triangles.length; i++) {
+                        indexVector.pushBack(triangles[i].vertexOne);
+                        indexVector.pushBack(triangles[i].vertexTwo);
+                        indexVector.pushBack(triangles[i].vertexThree);
+                }
+
+                PxBoundedData points = PxBoundedData.createAt(mem, MemoryStack::nmalloc);
+                points.setCount(pointVector.size());
+                points.setStride(PxVec3.SIZEOF);
+                points.setData(pointVector.begin());
+
+                PxBoundedData triangles = PxBoundedData.createAt(mem, MemoryStack::nmalloc);
+                triangles.setCount(indexVector.size() / 3);
+                triangles.setStride(4 * 3);
+                triangles.setData(indexVector.begin());
+
+                PxTriangleMeshDesc meshDesc = PxTriangleMeshDesc.createAt(mem, MemoryStack::nmalloc);
+                meshDesc.setPoints(points);
+                meshDesc.setTriangles(triangles);
+
+                PxTriangleMeshGeometry mesh = physics.cookTriangleMesh(meshDesc);
+                pointVector.destroy();
+                indexVector.destroy();
+
+                return mesh;
+        }
     }
 }

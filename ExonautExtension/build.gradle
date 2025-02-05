@@ -3,6 +3,9 @@ plugins {
     id "com.diffplug.spotless" version "6.13.0"
 }
 
+import org.gradle.internal.os.OperatingSystem
+OperatingSystem os = OperatingSystem.current();
+
 apply plugin: 'java'
 group 'xyz.openexonaut'
 version '0.1.0-SNAPSHOT'
@@ -18,7 +21,7 @@ spotless {
     java {
         googleJavaFormat().aosp()
         formatAnnotations()
-        importOrder('java', 'javax', '', 'com.smartfoxserver', 'xyz.openexonaut')
+        importOrder('java', 'javax', '', 'com.smartfoxserver', 'org.lwjgl', 'physx', 'xyz.openexonaut')
         removeUnusedImports()
         endWithNewline()
     }
@@ -48,7 +51,7 @@ tasks.register('copySFS2XLibs', Copy) {
     def SFS2XLibPath = new File(getSFS2XPath(), 'lib')
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from new File(SFS2XLibPath, 'sfs2x.jar'), new File(SFS2XLibPath, 'sfs2x-core.jar')
+    from new File(SFS2XLibPath, 'sfs2x.jar'), new File(SFS2XLibPath, 'sfs2x-core.jar'), new File(SFS2XLibPath, 'jackson-core-2.8.2.jar'), new File(SFS2XLibPath, 'jackson-databind-2.8.2.jar')
     into layout.projectDirectory.dir("lib")
 }
 
@@ -88,7 +91,18 @@ tasks.register('deployExonautRoomExtension', Copy) {
     into new File(getSFS2XPath(), 'extensions/Exonaut/')
 }
 
+tasks.register('deployDependencies', Copy) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.compileClasspath.filter {
+            it.exists() && !it.name.equals('sfs2x.jar') && !it.name.equals('sfs2x-core.jar') && !it.name.equals('jackson-core-2.8.2.jar') && !it.name.equals('jackson-databind-2.8.2.jar')
+        }
+    }
+    into new File(getSFS2XPath(), 'extensions/__lib__/')
+}
+
 tasks.register('deployAllJars') {
+    dependsOn tasks.deployDependencies
     dependsOn tasks.deployExonautLib
     dependsOn tasks.deployExonautZoneExtension
     dependsOn tasks.deployExonautRoomExtension
@@ -138,9 +152,24 @@ repositories {
 }
 
 dependencies {
-    implementation files('lib/sfs2x-core.jar', 'lib/sfs2x.jar')
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-xml', version: '2.9.0'
+    implementation files('lib/sfs2x-core.jar', 'lib/sfs2x.jar', 'lib/jackson-core-2.8.2.jar', 'lib/jackson-databind-2.8.2.jar')
+    implementation 'de.fabmax:physx-jni:2.5.0'
     implementation 'org.mongodb:mongodb-driver-sync:5.2.0'
+    implementation 'org.lwjgl:lwjgl:3.3.6'
+
+    if (os.isWindows()) {
+        implementation 'de.fabmax:physx-jni:2.5.0:natives-windows'
+        implementation 'org.lwjgl:lwjgl:3.3.6:natives-windows'
+    }
+    else if (os.isLinux()) {
+        implementation 'de.fabmax:physx-jni:2.5.0:natives-linux'
+        implementation 'org.lwjgl:lwjgl:3.3.6:natives-linux'
+    }
+    else if (os.isMacOsX()) {
+        implementation 'de.fabmax:physx-jni:2.5.0:natives-macos'
+        implementation 'org.lwjgl:lwjgl:3.3.6:natives-macos'
+        // sfs2x doesn't support ARM
+    }
 }
 
 assemble.dependsOn copySFS2XLibs
