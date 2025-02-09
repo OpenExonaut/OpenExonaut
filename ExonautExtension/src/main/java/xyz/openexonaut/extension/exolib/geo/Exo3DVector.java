@@ -12,10 +12,10 @@ public class Exo3DVector {
     }
 
     public Exo3DVector getTransformed(
-            ExoRotation selfRotation,
+            String selfRotation,
             Exo3DVector selfScale,
             Exo3DVector selfPosition,
-            ExoRotation fatherRotation,
+            String fatherRotation,
             Exo3DVector fatherScale,
             Exo3DVector fatherPosition) {
         return this.applyScaleRotatePosition(selfScale, selfPosition, selfRotation)
@@ -23,22 +23,22 @@ public class Exo3DVector {
     }
 
     private Exo3DVector applyScaleRotatePosition(
-            Exo3DVector scale, Exo3DVector position, ExoRotation rotation) {
+            Exo3DVector scale, Exo3DVector position, String rotation) {
         float newX = 0;
         float newY = 0;
         float newZ = 0;
         switch (rotation) {
-            case NONE:
+            case "0":
                 newX = this.x * scale.x;
                 newY = this.y * scale.y;
                 newZ = this.z * scale.z;
                 break;
-            case MINUS_X:
+            case "-x":
                 newX = this.x * scale.x;
                 newY = this.z * scale.z;
                 newZ = -this.y * scale.y;
                 break;
-            case Z:
+            case "z":
                 newX = this.y * scale.y;
                 newY = -this.x * scale.x;
                 newZ = this.z * scale.z;
@@ -53,6 +53,10 @@ public class Exo3DVector {
 
     public ExoInt2DVector convertNativeToDraw(float scalar) {
         return new ExoInt2DVector((int) (x * scalar), (int) (-y * scalar));
+    }
+
+    public Exo2DVector discardZ() {
+        return new Exo2DVector(x, y);
     }
 
     @Override

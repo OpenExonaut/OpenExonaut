@@ -21,14 +21,12 @@ import xyz.openexonaut.extension.room.eventhandlers.*;
 import xyz.openexonaut.extension.room.reqhandlers.*;
 
 public class ExonautRoomExtension extends SFSExtension {
-    private ExoMap map = null;
+    private ExoWorld world = null;
+
     private ExoSuit[] suits = null;
     private ExoWeapon[] weapons = null;
 
     private final ExoPlayer[] players = new ExoPlayer[8];
-    // this "efficiently" handles concurrency automagically; the copy-on-write arraylist is probably
-    // slower given the volatility
-    private final Set<ExoBullet> activeBullets = ConcurrentHashMap.newKeySet();
 
     private final AtomicInteger nextBulletId = new AtomicInteger(1);
     private final AtomicInteger nextGrenadeId = new AtomicInteger(1);
@@ -46,12 +44,14 @@ public class ExonautRoomExtension extends SFSExtension {
     @Override
     public void init() {
         room = this.getParentRoom();
-        map =
-                (ExoMap)
-                        this.getParentZone()
-                                .getExtension()
-                                .handleInternalMessage(
-                                        "getMap", room.getVariable("mapId").getIntValue());
+        world =
+                new ExoWorld(
+                        (ExoMap)
+                                this.getParentZone()
+                                        .getExtension()
+                                        .handleInternalMessage(
+                                                "getMap", room.getVariable("mapId").getIntValue()),
+                        players);
         suits =
                 (ExoSuit[])
                         this.getParentZone().getExtension().handleInternalMessage("getSuits", null);
@@ -82,6 +82,12 @@ public class ExonautRoomExtension extends SFSExtension {
         if (peekHandle != null) {
             peekHandle.cancel(true);
         }
+        if (peek != null) {
+            JFrame frame = peek.frame;
+            peek.canvas.removeAll();
+            peek = null;
+            frame.dispose();
+        }
         super.destroy();
     }
 
@@ -100,8 +106,11 @@ public class ExonautRoomExtension extends SFSExtension {
                 return suits[(Integer) parameters - 1];
             case "getWeapon":
                 return weapons[(Integer) parameters - 1];
-            case "addActiveBullet":
-                return activeBullets.add((ExoBullet) parameters);
+            case "spawnBullet":
+                return world.spawnBullet((ExoBullet) parameters);
+            case "spawnPlayer":
+                world.spawnPlayer((Integer) parameters);
+                return null;
             case "startCountdown":
                 timeHandle =
                         getApi().getSystemScheduler()
@@ -118,7 +127,7 @@ public class ExonautRoomExtension extends SFSExtension {
         private Container canvas = frame.getContentPane();
 
         public ExoPeek() {
-            this.setPreferredSize(new Dimension((int) map.size.x, (int) map.size.y));
+            this.setPreferredSize(new Dimension((int) world.map.size.x, (int) world.map.size.y));
             canvas.add(this);
             frame.pack();
             frame.setResizable(false);
@@ -128,25 +137,7 @@ public class ExonautRoomExtension extends SFSExtension {
 
         @Override
         public void paintComponent(Graphics g) {
-            g.translate((int) map.translate.x, (int) map.translate.y);
-            map.draw(g);
-            for (int i = 0; i < players.length; i++) {
-                ExoPlayer player = players[i];
-                if (player != null) {
-                    player.draw(g, map);
-                }
-            }
-            g.setColor(Color.PINK);
-            for (ExoBullet bullet : activeBullets) {
-                int bulletX = 0;
-                int bulletY = 0;
-                synchronized (bullet) {
-                    bulletX = (int) bullet.x;
-                    bulletY = (int) bullet.y;
-                }
-                g.drawLine(bulletX, bulletY, bulletX, bulletY);
-            }
-            g.translate(-(int) map.translate.x, -(int) map.translate.y);
+            world.draw(g);
         }
 
         @Override
@@ -168,7 +159,9 @@ public class ExonautRoomExtension extends SFSExtension {
                     stateUpdate.add(new SFSRoomVariable("state", "play"));
                     sfsApi.setRoomVariables(null, room, stateUpdate);
 
-                    peek = new ExoPeek();
+                    if (world.map.scale != 0f) {
+                        peek = new ExoPeek();
+                    }
 
                     // client state update targets 8 Hz. i think that's too infrequent, so let's
                     // start at 20 Hz and go from there
@@ -209,43 +202,8 @@ public class ExonautRoomExtension extends SFSExtension {
             long nano = System.nanoTime();
             float deltaTime = (nano - lastNano) / 1_000_000_000f;
             lastNano = nano;
-            float raycastScalar = deltaTime / ExoBullet.raycastFloat;
 
-            List<ExoBullet> expiringBullets = new ArrayList<>();
-            HashMap<ExoBullet, ExoPlayer> playerHits = new HashMap<>();
-
-            for (ExoBullet bullet : activeBullets) {
-                synchronized (bullet) {
-                    float raycastX = bullet.velocityX * raycastScalar;
-                    float raycastY = bullet.velocityY * raycastScalar;
-                    float raycastDist = bullet.velocity * raycastScalar;
-                    outer:
-                    for (int i = 0; i < ExoBullet.raycastCount; i++) {
-                        bullet.x += raycastX;
-                        bullet.y += raycastY;
-                        bullet.dist += raycastDist;
-
-                        if (bullet.dist > bullet.range /* || map.collision(bullet.x, bullet.y)*/) {
-                            expiringBullets.add(bullet);
-                            break;
-                        }
-
-                        for (int j = 0; j < players.length; j++) {
-                            ExoPlayer player = players[j];
-                            if (player.collision(bullet.x, bullet.y) > 0) {
-                                expiringBullets.add(bullet);
-                                playerHits.put(bullet, player);
-                                break outer;
-                            }
-                        }
-                    }
-                }
-            }
-
-            activeBullets.removeAll(expiringBullets);
-            for (ExoBullet bullet : playerHits.keySet()) {
-                playerHits.get(bullet).hit(bullet);
-            }
+            world.simulate(deltaTime);
         }
     }
 }

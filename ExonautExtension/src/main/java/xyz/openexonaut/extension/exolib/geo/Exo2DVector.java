@@ -14,6 +14,20 @@ public class Exo2DVector {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (o instanceof Exo2DVector) {
+            Exo2DVector other = (Exo2DVector) o;
+            return this.x == other.x && this.y == other.y;
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Float.floatToIntBits(x) ^ Float.floatToIntBits(y);
+    }
+
+    @Override
     public String toString() {
         return "(" + x + ", " + y + ")";
     }

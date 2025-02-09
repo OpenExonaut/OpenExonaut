@@ -48,7 +48,7 @@ public class SendMyShotPosition {
             evtHandler
                     .getParentExtension()
                     .handleInternalMessage(
-                            "addActiveBullet",
+                            "spawnBullet",
                             new ExoBullet(
                                     nextBulletId.getAndIncrement(),
                                     range,

@@ -4,6 +4,11 @@ import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
 import java.nio.file.*;
+import java.util.*;
+import java.util.List;
+
+import com.badlogic.gdx.math.*;
+import com.badlogic.gdx.physics.box2d.*;
 
 import xyz.openexonaut.extension.exolib.*;
 import xyz.openexonaut.extension.exolib.geo.*;
@@ -11,6 +16,7 @@ import xyz.openexonaut.extension.exolib.geo.*;
 public class MapLoader {
     private final Exo3DVector[] modifiedCoords;
     private final ExoTriangleVertices[] triangles;
+    private final ExoLineSegment[] lineSegments;
     private final Exo2DVector[] teamPlayerSpawns;
     private final Exo2DVector[] ffaPlayerSpawns;
     private final ExoItemSpawner[] teamItemSpawns;
@@ -18,8 +24,8 @@ public class MapLoader {
     private final ExoInt2DVector drawTranslate;
     private final ExoInt2DVector drawSize;
 
-    private final ExoRotation selfRotation;
-    private final ExoRotation fatherRotation;
+    private final String selfRotation;
+    private final String fatherRotation;
     private final Exo3DVector selfScale;
     private final Exo3DVector selfPosition;
     private final Exo3DVector fatherScale;
@@ -77,9 +83,8 @@ public class MapLoader {
         String[] teamItemSpawnStrings = teamItemSpawnFile.split(", ");
         String[] ffaItemSpawnStrings = ffaItemSpawnFile.split(", ");
 
-        selfRotation = ExoRotation.getRotation(getProperty(collisionInfoStrings, "rotation"));
-        fatherRotation =
-                ExoRotation.getRotation(getProperty(collisionInfoStrings, "father_rotation"));
+        selfRotation = getProperty(collisionInfoStrings, "rotation");
+        fatherRotation = getProperty(collisionInfoStrings, "father_rotation");
         drawTranslate =
                 getInt2DVector(getProperty(collisionInfoStrings, "draw_translate").split(", "));
         drawSize = getInt2DVector(getProperty(collisionInfoStrings, "draw_size").split(", "));
@@ -148,6 +153,28 @@ public class MapLoader {
                             Float.parseFloat(ffaItemSpawnStrings[(i * 4) + 2]),
                                     Float.parseFloat(ffaItemSpawnStrings[(i * 4) + 3]));
         }
+
+        List<ExoLineSegment> coordSegments = new ArrayList<>();
+        for (ExoTriangleVertices verts : triangles) {
+            Exo2DVector v1 = modifiedCoords[verts.vertexOne].discardZ();
+            Exo2DVector v2 = modifiedCoords[verts.vertexTwo].discardZ();
+            Exo2DVector v3 = modifiedCoords[verts.vertexThree].discardZ();
+
+            addWithSieve(new ExoLineSegment(v1, v2), coordSegments);
+            addWithSieve(new ExoLineSegment(v1, v3), coordSegments);
+            addWithSieve(new ExoLineSegment(v2, v3), coordSegments);
+        }
+
+        lineSegments = coordSegments.toArray(new ExoLineSegment[0]);
+    }
+
+    private static void addWithSieve(ExoLineSegment segment, List<ExoLineSegment> segments) {
+        if (!segment.isDegenerate()) {
+            for (int i = 0; i < segments.size(); i++) {
+                if (segments.get(i).equals(segment)) return;
+            }
+            segments.add(segment);
+        }
     }
 
     private static ExoInt2DVector getInt2DVector(String[] pairStrings) {
@@ -164,7 +191,7 @@ public class MapLoader {
 
     private static String getProperty(String[] properties, String property) {
         for (String s : properties) {
-            if (s.startsWith(property)) return s.substring(s.indexOf(":") + 2);
+            if (s.startsWith(property)) return s.substring(s.indexOf(':') + 2);
         }
         System.err.println("No such property " + property + "!");
         System.exit(1);
@@ -207,5 +234,20 @@ public class MapLoader {
 
     public ExoInt2DVector getDrawSize(float scalar) {
         return drawSize.scale(scalar);
+    }
+
+    public FixtureDef[] getWallFixtures() {
+        FixtureDef[] retVal = new FixtureDef[lineSegments.length];
+
+        for (int i = 0; i < retVal.length; i++) {
+            EdgeShape shape = new EdgeShape();
+            shape.set(
+                    new Vector2(lineSegments[i].vertexOne.x, lineSegments[i].vertexOne.y),
+                    new Vector2(lineSegments[i].vertexTwo.x, lineSegments[i].vertexTwo.y));
+            retVal[i] = new FixtureDef();
+            retVal[i].shape = shape;
+        }
+
+        return retVal;
     }
 }

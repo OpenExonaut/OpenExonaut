@@ -18,7 +18,7 @@ spotless {
     java {
         googleJavaFormat().aosp()
         formatAnnotations()
-        importOrder('java', 'javax', '', 'com.smartfoxserver', 'xyz.openexonaut')
+        importOrder('java', 'javax', '', 'com.badlogic', 'com.smartfoxserver', 'xyz.openexonaut')
         removeUnusedImports()
         endWithNewline()
     }
@@ -48,7 +48,7 @@ tasks.register('copySFS2XLibs', Copy) {
     def SFS2XLibPath = new File(getSFS2XPath(), 'lib')
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from new File(SFS2XLibPath, 'sfs2x.jar'), new File(SFS2XLibPath, 'sfs2x-core.jar')
+    from new File(SFS2XLibPath, 'sfs2x.jar'), new File(SFS2XLibPath, 'sfs2x-core.jar'), new File(SFS2XLibPath, 'jackson-core-2.8.2.jar'), new File(SFS2XLibPath, 'jackson-databind-2.8.2.jar')
     into layout.projectDirectory.dir("lib")
 }
 
@@ -88,7 +88,18 @@ tasks.register('deployExonautRoomExtension', Copy) {
     into new File(getSFS2XPath(), 'extensions/Exonaut/')
 }
 
+tasks.register('deployDependencies', Copy) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.compileClasspath.filter {
+            it.exists() && !it.name.equals('sfs2x.jar') && !it.name.equals('sfs2x-core.jar') && !it.name.equals('jackson-core-2.8.2.jar') && !it.name.equals('jackson-databind-2.8.2.jar')
+        }
+    }
+    into new File(getSFS2XPath(), 'extensions/__lib__/')
+}
+
 tasks.register('deployAllJars') {
+    dependsOn tasks.deployDependencies
     dependsOn tasks.deployExonautLib
     dependsOn tasks.deployExonautZoneExtension
     dependsOn tasks.deployExonautRoomExtension
@@ -138,9 +149,12 @@ repositories {
 }
 
 dependencies {
-    implementation files('lib/sfs2x-core.jar', 'lib/sfs2x.jar')
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-xml', version: '2.9.0'
+    implementation files('lib/sfs2x-core.jar', 'lib/sfs2x.jar', 'lib/jackson-core-2.8.2.jar', 'lib/jackson-databind-2.8.2.jar')
+
     implementation 'org.mongodb:mongodb-driver-sync:5.2.0'
+
+    implementation 'com.badlogicgames.gdx:gdx-box2d:1.13.1'
+    implementation 'com.badlogicgames.gdx:gdx-box2d-platform:1.13.1:natives-desktop'
 }
 
 assemble.dependsOn copySFS2XLibs
