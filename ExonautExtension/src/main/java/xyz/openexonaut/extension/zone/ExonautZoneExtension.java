@@ -59,12 +59,14 @@ public class ExonautZoneExtension extends SFSExtension {
                 ExoInt2DVector scaledDrawSize = mapLoaders[i].getDrawSize(debugGFXScale);
                 maps[i] =
                         new ExoMap(
+                                mapLoaders[i].getWallFixtures(),
                                 mapLoaders[i].getImage(
                                         debugGFXScale, scaledDrawTranslate, scaledDrawSize),
                                 scaledDrawTranslate,
-                                scaledDrawSize);
+                                scaledDrawSize,
+                                debugGFXScale);
             } else {
-                maps[i] = new ExoMap(null, null, null);
+                maps[i] = new ExoMap(mapLoaders[i].getWallFixtures(), null, null, null, 0f);
             }
         }
 

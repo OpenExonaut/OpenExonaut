@@ -4,9 +4,13 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
+import com.badlogic.gdx.physics.box2d.*;
+
 import com.smartfoxserver.v2.api.*;
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.variables.*;
+
+import xyz.openexonaut.extension.exolib.geo.*;
 
 public class ExoPlayer {
     public final User user;
@@ -27,6 +31,8 @@ public class ExoPlayer {
     public int weaponId = 0;
 
     private int crashTimer = 8;
+
+    public Body body = null;
 
     public ExoPlayer(User user) {
         this.user = user;
@@ -106,56 +112,38 @@ public class ExoPlayer {
             cachedY = y;
         }
 
-        int drawPositionX = (int) cachedX;
-        int drawLeftEdgeX = (int) (cachedX - 1.5f);
+        ExoInt2DVector drawCenter =
+                new Exo2DVector(cachedX, cachedY + 6f).convertNativeToDraw(map.scale);
 
-        int drawPositionY = (int) cachedY;
+        ExoInt2DVector drawHead =
+                new Exo2DVector(cachedX - 1.5f, cachedY + 6f + 5f + 1.5f)
+                        .convertNativeToDraw(map.scale);
+        ExoInt2DVector drawFeet =
+                new Exo2DVector(cachedX - 1.5f, cachedY + 6f - 5f + 1.5f)
+                        .convertNativeToDraw(map.scale);
+        ExoInt2DVector drawBody =
+                new Exo2DVector(cachedX - 1.5f, cachedY + 6f + 5f).convertNativeToDraw(map.scale);
+
+        int doubleRadius = (int) (3 * map.scale);
+        int height = (int) (10 * map.scale);
 
         // collider top
         // TODO: where actually is the head, if headshots are still in?
         g.setColor(Color.GREEN);
-        // + 6: center
-        // + 5: height / 2
-        // CharacterCollider height includes the hemispheres, so this gets us to the top already
-        g.fillOval(drawLeftEdgeX, (int) (cachedY + 6f + 5f), 3, 3);
+        g.fillOval(drawHead.x, drawHead.y, doubleRadius, doubleRadius);
 
         g.setColor(Color.BLUE);
-        // this on the other hand, the first + 1.5 only gets us to the semicircle's center
-        g.fillOval(drawLeftEdgeX, (int) (cachedY + 6f - 5f + 1.5f + 1.5f), 3, 3);
-        g.fillRect(drawLeftEdgeX, (int) (cachedY + 6f + 5f - 1.5f), 3, 7);
+        g.fillOval(drawFeet.x, drawFeet.y, doubleRadius, doubleRadius);
+        g.fillRect(drawBody.x, drawBody.y, doubleRadius, height);
 
         // position (bottom-center of model)
         g.setColor(Color.RED);
-        g.drawLine(drawPositionX, drawPositionY, drawPositionX, drawPositionY);
+        g.drawLine(drawCenter.x, drawCenter.y, drawCenter.x, drawCenter.y);
 
         // TODO: disjoint phantoms?
     }
 
-    // obtains a brief mutex on the player to cache the position for the function's lifetime
-    public int collision(float checkX, float checkY) {
-        float cachedX = 0;
-        float cachedY = 0;
-
-        synchronized (this) {
-            cachedX = x;
-            cachedY = y;
-        }
-
-        // TODO: disjoint phantoms?
-
-        // insideness of rectangle
-        if (checkX > cachedX - 1.5f
-                && checkX < cachedX + 1.5f
-                && checkY > cachedY + 2.5f
-                && checkY < cachedY + 9.5f) return 1;
-        // insideness of bottom semicircle
-        if (Math.hypot(checkX - cachedX, checkY - (cachedY + 2.5f)) < 1.5) return 2;
-        // insideness of top semicircle
-        if (Math.hypot(checkX - cachedX, checkY - (cachedY + 9.5f)) < 1.5) return 3;
-        return 0;
-    }
-
-    public void hit(ExoBullet bullet) {
+    public void hit(ExoBullet bullet, int where) {
         // TODO: hit handling
     }
 }

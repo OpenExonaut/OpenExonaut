@@ -31,6 +31,8 @@ public class UserJoinRoomHandler extends BaseServerEventHandler {
             trace(ExtensionLogLevel.WARN, "no room for new user");
         }
 
+        getParentExtension().handleInternalMessage("spawnPlayer", player.id);
+
         if (getParentExtension().getParentRoom().getPlayersList().size() >= MIN_PLAYERS) {
             if (getParentExtension()
                     .getParentRoom()
