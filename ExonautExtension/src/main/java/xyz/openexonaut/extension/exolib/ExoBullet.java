@@ -17,6 +17,7 @@ public class ExoBullet {
     public float y;
     public float dist;
 
+    // actual bullet
     public ExoBullet(
             int num,
             float range,
@@ -37,7 +38,23 @@ public class ExoBullet {
 
         this.x = x;
         this.y = y;
-        this.dist = 0;
+        this.dist = 0f;
+    }
+
+    // sniper hitscan
+    public ExoBullet(
+            float startX, float startY, float endX, float endY, int damage, ExoPlayer player) {
+        this.num = -1;
+        this.range = 1000f;
+        this.velocity = Float.POSITIVE_INFINITY;
+        this.velocityXComponent = endX; // that's right,
+        this.velocityYComponent = endY; // we're gonna cheat!
+        this.damage = damage;
+        this.player = player;
+
+        this.x = startX;
+        this.y = startY;
+        this.dist = 0f;
     }
 
     public void draw(Graphics g, ExoMap map) {

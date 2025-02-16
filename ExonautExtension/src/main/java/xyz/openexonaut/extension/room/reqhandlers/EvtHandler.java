@@ -28,6 +28,10 @@ public class EvtHandler extends BaseClientRequestHandler {
                     SendMyGrenadePosition.handle(this, player, params);
                     break;
 
+                case 18: // EVT_SEND_SNIPER_SHOT - SendSniperLine
+                    SendSniperLine.handle(this, player, params);
+                    break;
+
                 case 23: // EVT_SEND_OPP_INFO - SendOpponentInfo
                     SendOpponentInfo.handle(this, player, params);
                     break;
@@ -45,17 +49,17 @@ public class EvtHandler extends BaseClientRequestHandler {
                 case 8: // EVT_SEND_PICKUP - SendActivatePickupEvent
                     // falls through
 
-                case 17: // EVT_SEND_TAUNT - SendTaunt
+                    // TODO: explosives
+                case 9: // EVT_SEND_GRENADE_EXPLODE - SendGrenadeExplode
+                case 16: // EVT_SEND_ROCKET_EXPLODE - SendRocketExplode
                     // falls through
 
                 case 6: // EVT_SEND_CHANGE_WEAPON - SendChangeWeapon
-                case 9: // EVT_SEND_GRENADE_EXPLODE - SendGrenadeExplode
-                case 16: // EVT_SEND_ROCKET_EXPLODE - SendRocketExplode
-                case 18: // EVT_SEND_SNIPER_SHOT - SendSniperLine
+                case 17: // EVT_SEND_TAUNT - SendTaunt
                     Echo.handle(this, player, params);
                     break;
 
-                    // ids whose functions are called but have no receipt code (for server
+                    // TODO: ids whose functions are called but have no receipt code (for server
                     // processing?)
                 case 26: // EVT_SEND_ROLL - SendRoll
                 case 27: // EVT_SEND_AIRDASH - SendAirdash
