@@ -116,6 +116,9 @@ public class ExonautRoomExtension extends SFSExtension {
                         getApi().getSystemScheduler()
                                 .scheduleAtFixedRate(new ExoTimer(), 1, 1, TimeUnit.SECONDS);
                 return null;
+            case "handleSnipe":
+                world.handleSnipe((ExoBullet) parameters);
+                return null;
             default:
                 trace(ExtensionLogLevel.ERROR, "Invalid internal message " + command);
                 return null;
@@ -137,6 +140,7 @@ public class ExonautRoomExtension extends SFSExtension {
 
         @Override
         public void paintComponent(Graphics g) {
+            super.paintComponent(g);
             world.draw(g);
         }
 

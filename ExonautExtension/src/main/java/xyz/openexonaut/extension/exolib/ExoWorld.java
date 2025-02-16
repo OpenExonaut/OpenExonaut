@@ -8,7 +8,7 @@ import java.util.concurrent.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.physics.box2d.*;
 
-public class ExoWorld implements RayCastCallback {
+public class ExoWorld {
     public final ExoMap map;
     private final ExoPlayer[] players;
 
@@ -23,8 +23,6 @@ public class ExoWorld implements RayCastCallback {
 
     private final Body walls;
 
-    private Fixture raycastFixture = null;
-
     // this "efficiently" handles concurrency automagically; the copy-on-write arraylist is probably
     // slower given the volatility
     private final Set<ExoBullet> activeBullets = ConcurrentHashMap.newKeySet();
@@ -38,9 +36,8 @@ public class ExoWorld implements RayCastCallback {
 
         walls = world.createBody(wallDef);
         for (FixtureDef wall : map.wallFixtures) {
-            walls.createFixture(wall);
+            walls.createFixture(wall).setUserData(new ExoUserData(0, 0));
         }
-        walls.setUserData(new ExoUserData(0, 0));
 
         CircleShape head = new CircleShape();
         head.setPosition(new Vector2(0f, 11.5f));
@@ -71,6 +68,26 @@ public class ExoWorld implements RayCastCallback {
         return activeBullets.add(bullet);
     }
 
+    public void handleSnipe(ExoBullet bullet) {
+        Vector2 delta =
+                new Vector2(
+                        bullet.velocityXComponent - bullet.x, bullet.velocityYComponent - bullet.y);
+        delta.setLength(1000f);
+
+        ExoUserData raycastData =
+                raycast(
+                        bullet.x,
+                        bullet.y,
+                        bullet.x + delta.x,
+                        bullet.y + delta.y,
+                        bullet.player.id);
+        if (raycastData != null) {
+            if (raycastData.id != 0) {
+                players[raycastData.id - 1].hit(bullet, raycastData.part);
+            }
+        }
+    }
+
     public void draw(Graphics g) {
         map.draw(g);
 
@@ -93,7 +110,7 @@ public class ExoWorld implements RayCastCallback {
 
     public void simulate(float deltaTime) {
         List<ExoBullet> expiringBullets = new ArrayList<>();
-        HashMap<ExoBullet, ExoHit> playerHits = new HashMap<>();
+        HashMap<ExoBullet, ExoUserData> playerHits = new HashMap<>();
 
         for (ExoPlayer player : players) {
             if (player != null) {
@@ -117,24 +134,18 @@ public class ExoWorld implements RayCastCallback {
             float raycastX = bullet.velocityXComponent * raycastDist;
             float raycastY = bullet.velocityYComponent * raycastDist;
 
-            raycastFixture = null;
-            world.rayCast(this, bullet.x, bullet.y, bullet.x + raycastX, bullet.y + raycastY);
+            ExoUserData raycastData =
+                    raycast(
+                            bullet.x,
+                            bullet.y,
+                            bullet.x + raycastX,
+                            bullet.y + raycastY,
+                            bullet.player.id);
 
-            // raycasts that start inside a fixture ignore that fixture
-            if (raycastFixture == null) {
-                world.rayCast(this, bullet.x + raycastX, bullet.y + raycastY, bullet.x, bullet.y);
-            }
-
-            if (raycastFixture != null) {
+            if (raycastData != null) {
                 expiringBullets.add(bullet);
-                if (raycastFixture.getUserData() != null) {
-                    if (raycastFixture.getUserData() instanceof ExoUserData) {
-                        ExoUserData userData = (ExoUserData) raycastFixture.getUserData();
-                        if (userData.id != 0) {
-                            playerHits.put(
-                                    bullet, new ExoHit(players[userData.id - 1], userData.part));
-                        }
-                    }
+                if (raycastData.id != 0) {
+                    playerHits.put(bullet, raycastData);
                 }
             } else {
                 if (last) {
@@ -151,14 +162,49 @@ public class ExoWorld implements RayCastCallback {
 
         activeBullets.removeAll(expiringBullets);
         for (ExoBullet bullet : playerHits.keySet()) {
-            ExoHit hit = playerHits.get(bullet);
-            hit.player.hit(bullet, hit.where);
+            ExoUserData hitData = playerHits.get(bullet);
+            players[hitData.id - 1].hit(bullet, hitData.part);
         }
     }
 
-    @Override
-    public float reportRayFixture(Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
-        raycastFixture = fixture;
-        return fraction;
+    private ExoUserData raycast(float startX, float startY, float endX, float endY, int shooterID) {
+        final class RaycastHandler implements RayCastCallback {
+            private ExoUserData result = null;
+            private float raycastFraction = 2f;
+            private boolean backcast = false;
+
+            @Override
+            public float reportRayFixture(
+                    Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
+                if (backcast) {
+                    float currentFraction = 1f - fraction;
+                    if (currentFraction < raycastFraction) {
+                        ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
+                        if (exoUserData.id != shooterID) {
+                            result = exoUserData;
+                            raycastFraction = currentFraction;
+                        }
+                    }
+                } else {
+                    ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
+                    if (exoUserData.id != shooterID) {
+                        result = exoUserData;
+                        raycastFraction = fraction;
+                        return fraction;
+                    }
+                }
+                return 1f;
+            }
+        }
+
+        RaycastHandler raycastHandler = new RaycastHandler();
+
+        raycastHandler.backcast = false;
+        world.rayCast(raycastHandler, startX, startY, endX, endY);
+
+        raycastHandler.backcast = true;
+        world.rayCast(raycastHandler, endX, endY, startX, startY);
+
+        return raycastHandler.result;
     }
 }

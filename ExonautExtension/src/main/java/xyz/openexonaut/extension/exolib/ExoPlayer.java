@@ -112,17 +112,19 @@ public class ExoPlayer {
             cachedY = y;
         }
 
+        // the center of the character collider in the game is set to y = 6f, despite the total
+        // height being 13f. hope that's not too important
         ExoInt2DVector drawCenter =
-                new Exo2DVector(cachedX, cachedY + 6f).convertNativeToDraw(map.scale);
+                new Exo2DVector(cachedX, cachedY + 6.5f).convertNativeToDraw(map.scale);
 
         ExoInt2DVector drawHead =
-                new Exo2DVector(cachedX - 1.5f, cachedY + 6f + 5f + 1.5f)
+                new Exo2DVector(cachedX - 1.5f, cachedY + 6.5f + 5f + 1.5f)
                         .convertNativeToDraw(map.scale);
         ExoInt2DVector drawFeet =
-                new Exo2DVector(cachedX - 1.5f, cachedY + 6f - 5f + 1.5f)
+                new Exo2DVector(cachedX - 1.5f, cachedY + 6.5f - 5f + 1.5f)
                         .convertNativeToDraw(map.scale);
         ExoInt2DVector drawBody =
-                new Exo2DVector(cachedX - 1.5f, cachedY + 6f + 5f).convertNativeToDraw(map.scale);
+                new Exo2DVector(cachedX - 1.5f, cachedY + 6.5f + 5f).convertNativeToDraw(map.scale);
 
         int doubleRadius = (int) (3 * map.scale);
         int height = (int) (10 * map.scale);
@@ -136,7 +138,6 @@ public class ExoPlayer {
         g.fillOval(drawFeet.x, drawFeet.y, doubleRadius, doubleRadius);
         g.fillRect(drawBody.x, drawBody.y, doubleRadius, height);
 
-        // position (bottom-center of model)
         g.setColor(Color.RED);
         g.drawLine(drawCenter.x, drawCenter.y, drawCenter.x, drawCenter.y);
 
@@ -145,5 +146,24 @@ public class ExoPlayer {
 
     public void hit(ExoBullet bullet, int where) {
         // TODO: hit handling
+        String place = "";
+        switch (where) {
+            case 1:
+                place = "head";
+                break;
+            case 3:
+                place = "feet";
+                break;
+            default:
+                place = "body";
+        }
+        System.out.println(
+                nickname
+                        + " was hit in the "
+                        + place
+                        + " by bullet id "
+                        + bullet.num
+                        + " (-1 for sniper), shot by "
+                        + bullet.player.nickname);
     }
 }
