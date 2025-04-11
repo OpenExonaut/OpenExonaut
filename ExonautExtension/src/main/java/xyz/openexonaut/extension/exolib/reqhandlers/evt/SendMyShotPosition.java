@@ -1,11 +1,11 @@
-package xyz.openexonaut.extension.room.reqhandlers.evt;
+package xyz.openexonaut.extension.exolib.reqhandlers.evt;
 
 import java.util.concurrent.atomic.*;
 
 import com.smartfoxserver.v2.entities.data.*;
 
 import xyz.openexonaut.extension.exolib.*;
-import xyz.openexonaut.extension.room.reqhandlers.*;
+import xyz.openexonaut.extension.exolib.reqhandlers.*;
 
 public class SendMyShotPosition {
     public static void handle(EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
@@ -28,15 +28,10 @@ public class SendMyShotPosition {
                                 .handleInternalMessage("getWeapon", player.weaponId);
         float range = weapon.Range;
         float velocity = weapon.Velocity;
-        int damage = weapon.Damage;
+        float damage = weapon.Damage;
         int projectiles = weapon.Projectiles;
 
-        ExoMod weaponMod =
-                ((ExoSuit)
-                                evtHandler
-                                        .getParentExtension()
-                                        .handleInternalMessage("getSuit", player.suitId))
-                        .WeaponMod;
+        ExoMod weaponMod = player.suit.WeaponMod;
         if (weaponMod.weapon.equals(weapon)) {
             range += weaponMod.Projectile_Range;
             damage += weaponMod.Damage_Per_Projectile;
@@ -63,7 +58,7 @@ public class SendMyShotPosition {
 
         ISFSObject newShot = new SFSObject();
         newShot.putInt("playerId", params.getInt("playerId"));
-        newShot.putInt("msgType", 4);
+        newShot.putInt("msgType", EvtEnum.EVT_SEND_SHOT_POSITION.code);
         newShot.putFloat("angle", angle);
         newShot.putFloat("inc", inc);
         newShot.putFloat("x", x);

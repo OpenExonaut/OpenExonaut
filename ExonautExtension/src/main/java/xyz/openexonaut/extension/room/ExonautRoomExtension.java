@@ -17,13 +17,13 @@ import com.smartfoxserver.v2.entities.variables.*;
 import com.smartfoxserver.v2.extensions.*;
 
 import xyz.openexonaut.extension.exolib.*;
+import xyz.openexonaut.extension.exolib.reqhandlers.*;
 import xyz.openexonaut.extension.room.eventhandlers.*;
-import xyz.openexonaut.extension.room.reqhandlers.*;
 
 public class ExonautRoomExtension extends SFSExtension {
     private ExoWorld world = null;
 
-    private ExoSuit[] suits = null;
+    // private ExoSuit[] suits = null;
     private ExoWeapon[] weapons = null;
 
     private final ExoPlayer[] players = new ExoPlayer[8];
@@ -52,9 +52,11 @@ public class ExonautRoomExtension extends SFSExtension {
                                         .handleInternalMessage(
                                                 "getMap", room.getVariable("mapId").getIntValue()),
                         players);
+        /*
         suits =
                 (ExoSuit[])
                         this.getParentZone().getExtension().handleInternalMessage("getSuits", null);
+        */
         weapons =
                 (ExoWeapon[])
                         this.getParentZone()
@@ -91,6 +93,27 @@ public class ExonautRoomExtension extends SFSExtension {
         super.destroy();
     }
 
+    // TODO: hook into actual functionality
+    public void creditsXPRewardSolo() {
+        ExoPlayer[] sortedPlayers = Arrays.copyOf(players, 8);
+        Arrays.sort(sortedPlayers, (a, b) -> b.hacks - a.hacks); // sort by descending hacks
+        int mostHacks = sortedPlayers[0].hacks;
+
+        int[] award = new int[8]; // indexed by unsorted ids
+        for (int i = 0; i < sortedPlayers.length; i++) {
+            if (sortedPlayers[i] != null) {
+                int id = sortedPlayers[i].id;
+                award[id] = 5; // participation
+                award[id] += sortedPlayers[i].hacks * 5; // hacks
+                if (sortedPlayers[i].hacks == mostHacks) {
+                    award[id] +=
+                            10; // winning. for team matches, this is applied to everyone on the
+                    // winning team (team with most hacks)
+                }
+            }
+        }
+    }
+
     @Override
     public Object handleInternalMessage(String command, Object parameters) {
         switch (command) {
@@ -102,8 +125,6 @@ public class ExonautRoomExtension extends SFSExtension {
                 return timeLimit;
             case "getPlayers":
                 return players;
-            case "getSuit":
-                return suits[(Integer) parameters - 1];
             case "getWeapon":
                 return weapons[(Integer) parameters - 1];
             case "spawnBullet":
@@ -117,7 +138,13 @@ public class ExonautRoomExtension extends SFSExtension {
                                 .scheduleAtFixedRate(new ExoTimer(), 1, 1, TimeUnit.SECONDS);
                 return null;
             case "handleSnipe":
-                world.handleSnipe((ExoBullet) parameters);
+                world.handleSnipe((ExoBullet) parameters, room);
+                return null;
+            case "addHack":
+                ExoPlayer player = (ExoPlayer) parameters;
+                List<UserVariable> hacksUpdate = new ArrayList<>();
+                hacksUpdate.add(new SFSUserVariable("hacks", (Integer) (++player.hacks)));
+                sfsApi.setUserVariables(player.user, hacksUpdate);
                 return null;
             default:
                 trace(ExtensionLogLevel.ERROR, "Invalid internal message " + command);
@@ -207,7 +234,7 @@ public class ExonautRoomExtension extends SFSExtension {
             float deltaTime = (nano - lastNano) / 1_000_000_000f;
             lastNano = nano;
 
-            world.simulate(deltaTime);
+            world.simulate(deltaTime, room);
         }
     }
 }

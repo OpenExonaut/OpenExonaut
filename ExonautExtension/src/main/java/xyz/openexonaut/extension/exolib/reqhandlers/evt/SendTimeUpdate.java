@@ -1,15 +1,15 @@
-package xyz.openexonaut.extension.room.reqhandlers.evt;
+package xyz.openexonaut.extension.exolib.reqhandlers.evt;
 
 import com.smartfoxserver.v2.entities.data.*;
 
 import xyz.openexonaut.extension.exolib.*;
-import xyz.openexonaut.extension.room.reqhandlers.*;
+import xyz.openexonaut.extension.exolib.reqhandlers.*;
 
 public class SendTimeUpdate {
     public static void handle(EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
         ISFSObject timeAck = new SFSObject();
         timeAck.putInt("playerId", params.getInt("playerId"));
-        timeAck.putInt("msgType", 24);
+        timeAck.putInt("msgType", EvtEnum.EVT_TIME_UPDATE.code);
         timeAck.putInt(
                 "time",
                 (Integer)

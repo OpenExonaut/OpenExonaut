@@ -1,4 +1,4 @@
-package xyz.openexonaut.extension.room.reqhandlers;
+package xyz.openexonaut.extension.exolib.reqhandlers;
 
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.data.*;
