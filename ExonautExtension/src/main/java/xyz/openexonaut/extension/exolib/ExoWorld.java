@@ -8,6 +8,8 @@ import java.util.concurrent.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.physics.box2d.*;
 
+import com.smartfoxserver.v2.entities.*;
+
 public class ExoWorld {
     public final ExoMap map;
     private final ExoPlayer[] players;
@@ -68,7 +70,7 @@ public class ExoWorld {
         return activeBullets.add(bullet);
     }
 
-    public void handleSnipe(ExoBullet bullet) {
+    public void handleSnipe(ExoBullet bullet, Room room) {
         Vector2 delta =
                 new Vector2(
                         bullet.velocityXComponent - bullet.x, bullet.velocityYComponent - bullet.y);
@@ -83,7 +85,7 @@ public class ExoWorld {
                         bullet.player.id);
         if (raycastData != null) {
             if (raycastData.id != 0) {
-                players[raycastData.id - 1].hit(bullet, raycastData.part);
+                players[raycastData.id - 1].hit(bullet, raycastData.part, room);
             }
         }
     }
@@ -108,7 +110,7 @@ public class ExoWorld {
         g.translate(-(int) map.translate.x, -(int) map.translate.y);
     }
 
-    public void simulate(float deltaTime) {
+    public void simulate(float deltaTime, Room room) {
         List<ExoBullet> expiringBullets = new ArrayList<>();
         HashMap<ExoBullet, ExoUserData> playerHits = new HashMap<>();
 
@@ -163,7 +165,7 @@ public class ExoWorld {
         activeBullets.removeAll(expiringBullets);
         for (ExoBullet bullet : playerHits.keySet()) {
             ExoUserData hitData = playerHits.get(bullet);
-            players[hitData.id - 1].hit(bullet, hitData.part);
+            players[hitData.id - 1].hit(bullet, hitData.part, room);
         }
     }
 

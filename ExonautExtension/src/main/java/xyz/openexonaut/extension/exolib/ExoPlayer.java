@@ -8,21 +8,24 @@ import com.badlogic.gdx.physics.box2d.*;
 
 import com.smartfoxserver.v2.api.*;
 import com.smartfoxserver.v2.entities.*;
+import com.smartfoxserver.v2.entities.data.*;
 import com.smartfoxserver.v2.entities.variables.*;
 
 import xyz.openexonaut.extension.exolib.geo.*;
+import xyz.openexonaut.extension.exolib.reqhandlers.*;
 
 public class ExoPlayer {
     public final User user;
     public final String nickname;
     public final int suitId;
+    public final ExoSuit suit;
 
     public int id = 0;
     public String avatarState = "halted";
     public String clientState = "";
     public float x = 0;
     public float y = 0;
-    public int health = 0;
+    public float health = 0;
     public int moveState = 0;
     public int moveDir = 0;
     public int boost = 0;
@@ -30,14 +33,21 @@ public class ExoPlayer {
     public int hacks = 0;
     public int weaponId = 0;
 
-    private int crashTimer = 8;
+    public int crashTimer = 8;
+    public int crashes = 0;
+    public boolean speedBoost = false;
+    public boolean attackBoost = false;
+    public boolean defenseBoost = false;
 
     public Body body = null;
 
-    public ExoPlayer(User user) {
+    public ExoPlayer(User user, ExoSuit[] suits) {
         this.user = user;
         this.nickname = user.getName();
         this.suitId = user.getVariable("suitId").getIntValue();
+        this.suit = suits[suitId - 1];
+
+        health = suit.Health;
     }
 
     // obtains a mutex on the player for the whole function
@@ -62,13 +72,13 @@ public class ExoPlayer {
                 } else if (var.getName().equals("y")) {
                     this.y = (float) var.getDoubleValue().doubleValue();
                 } else if (var.getName().equals("health")) {
-                    this.health = var.getIntValue();
+                    this.health = (float) var.getDoubleValue().doubleValue();
                 } else if (var.getName().equals("moveState")) {
                     this.moveState = var.getIntValue();
                 } else if (var.getName().equals("moveDir")) {
                     this.moveDir = var.getIntValue();
                 } else if (var.getName().equals("boost")) {
-                    this.health = var.getIntValue();
+                    this.boost = var.getIntValue();
                 } else if (var.getName().equals("teamBoost")) {
                     this.teamBoost = var.getIntValue();
                 } else if (var.getName().equals("hacks")) {
@@ -130,7 +140,7 @@ public class ExoPlayer {
         int height = (int) (10 * map.scale);
 
         // collider top
-        // TODO: where actually is the head, if headshots are still in?
+        // TODO: where actually is the head?
         g.setColor(Color.GREEN);
         g.fillOval(drawHead.x, drawHead.y, doubleRadius, doubleRadius);
 
@@ -144,8 +154,7 @@ public class ExoPlayer {
         // TODO: disjoint phantoms?
     }
 
-    public void hit(ExoBullet bullet, int where) {
-        // TODO: hit handling
+    public void hit(ExoBullet bullet, int where, Room room) {
         String place = "";
         switch (where) {
             case 1:
@@ -165,5 +174,45 @@ public class ExoPlayer {
                         + bullet.num
                         + " (-1 for sniper), shot by "
                         + bullet.player.nickname);
+
+        boolean headshot = where == 1;
+
+        float damageTaken = bullet.damage;
+        if (headshot) {
+            // is this right? description of Brad's Princess Bubblegum video:
+            // "Her Marksman fires 1 high-damage shot so if you critical hit light exosuits you can
+            // hack them in one shot."
+            // her marksman does 100 damage, lights have ca. 125 armor, mediums have ca. 150; puts
+            // it between 1.25 and 1.5
+            damageTaken *= 1.25f;
+        }
+        if (defenseBoost) {
+            // this value (0.2 multiplier) was taken from essentially dead client code. is this
+            // right?
+            damageTaken *= 0.8f;
+        }
+
+        health -= damageTaken;
+
+        ISFSObject notification = new SFSObject();
+        notification.putInt("bnum", bullet.num);
+        notification.putInt("playerId", id - 1);
+        notification.putInt("uAttackerID", bullet.player.id - 1);
+        if (health <= 0) {
+            notification.putInt("msgType", EvtEnum.EVT_SEND_CAPTURED.code);
+            crashes++;
+            room.getExtension().handleInternalMessage("addHack", bullet.player);
+        } else {
+            notification.putInt("msgType", EvtEnum.EVT_SEND_DAMAGE.code);
+            notification.putFloat("damage", bullet.damage);
+            notification.putInt("hs", where == 1 ? 1 : 0);
+            notification.putFloat("health", health);
+        }
+
+        ISFSArray eventArray = new SFSArray();
+        ISFSObject response = new SFSObject();
+        eventArray.addSFSObject(notification);
+        response.putSFSArray("events", eventArray);
+        room.getExtension().send("sendEvents", response, room.getPlayersList());
     }
 }

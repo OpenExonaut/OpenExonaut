@@ -1,9 +1,9 @@
-package xyz.openexonaut.extension.room.reqhandlers.evt;
+package xyz.openexonaut.extension.exolib.reqhandlers.evt;
 
 import com.smartfoxserver.v2.entities.data.*;
 
 import xyz.openexonaut.extension.exolib.*;
-import xyz.openexonaut.extension.room.reqhandlers.*;
+import xyz.openexonaut.extension.exolib.reqhandlers.*;
 
 public class SendSniperLine {
     public static void handle(EvtHandler evtHandler, ExoPlayer player, ISFSObject params) {
@@ -17,14 +17,9 @@ public class SendSniperLine {
                         evtHandler
                                 .getParentExtension()
                                 .handleInternalMessage("getWeapon", player.weaponId);
-        int damage = weapon.Damage;
+        float damage = weapon.Damage;
 
-        ExoMod weaponMod =
-                ((ExoSuit)
-                                evtHandler
-                                        .getParentExtension()
-                                        .handleInternalMessage("getSuit", player.suitId))
-                        .WeaponMod;
+        ExoMod weaponMod = player.suit.WeaponMod;
         if (weaponMod.weapon.equals(weapon)) {
             damage += weaponMod.Damage_Per_Projectile;
         }

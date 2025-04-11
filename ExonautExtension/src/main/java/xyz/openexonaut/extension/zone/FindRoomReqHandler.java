@@ -33,7 +33,13 @@ public class FindRoomReqHandler extends BaseClientRequestHandler {
             userVars.add(new SFSUserVariable("y", (double) 0));
 
             this.getApi().setUserVariables(sender, userVars);
-            sender.setProperty("ExoPlayer", new ExoPlayer(sender));
+            sender.setProperty(
+                    "ExoPlayer",
+                    new ExoPlayer(
+                            sender,
+                            (ExoSuit[])
+                                    this.getParentExtension()
+                                            .handleInternalMessage("getSuits", null)));
 
             roomSettings.setMaxUsers(8);
             roomSettings.setMaxVariablesAllowed(50);

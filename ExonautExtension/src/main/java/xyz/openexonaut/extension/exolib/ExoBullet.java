@@ -10,7 +10,7 @@ public class ExoBullet {
     public final float velocity;
     public final float velocityXComponent;
     public final float velocityYComponent;
-    public final int damage;
+    public final float damage;
     public final ExoPlayer player;
 
     public float x;
@@ -23,7 +23,7 @@ public class ExoBullet {
             float range,
             float velocity,
             float angle,
-            int damage,
+            float damage,
             float x,
             float y,
             ExoPlayer player) {
@@ -33,28 +33,42 @@ public class ExoBullet {
         this.velocity = velocity;
         this.velocityXComponent = (float) Math.cos(angle);
         this.velocityYComponent = (float) Math.sin(angle);
-        this.damage = damage;
         this.player = player;
 
         this.x = x;
         this.y = y;
         this.dist = 0f;
+
+        if (player.attackBoost) {
+            this.damage =
+                    damage * 1.2f; // this value (0.2 multiplier) was taken from essentially dead
+            // client code. is this right?
+        } else {
+            this.damage = damage;
+        }
     }
 
     // sniper hitscan
     public ExoBullet(
-            float startX, float startY, float endX, float endY, int damage, ExoPlayer player) {
+            float startX, float startY, float endX, float endY, float damage, ExoPlayer player) {
         this.num = -1;
         this.range = 1000f;
         this.velocity = Float.POSITIVE_INFINITY;
         this.velocityXComponent = endX; // that's right,
         this.velocityYComponent = endY; // we're gonna cheat!
-        this.damage = damage;
         this.player = player;
 
         this.x = startX;
         this.y = startY;
         this.dist = 0f;
+
+        if (player.attackBoost) {
+            this.damage =
+                    damage * 1.2f; // this value (0.2 multiplier) was taken from essentially dead
+            // client code. is this right?
+        } else {
+            this.damage = damage;
+        }
     }
 
     public void draw(Graphics g, ExoMap map) {
