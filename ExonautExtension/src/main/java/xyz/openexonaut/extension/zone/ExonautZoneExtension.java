@@ -22,7 +22,7 @@ public class ExonautZoneExtension extends SFSExtension {
     private ExoSuit[] suits = null;
 
     private boolean debugGFX = false;
-    private float debugGFXScale = 1;
+    private float debugGFXScale = 1f;
 
     @Override
     public void init() {
@@ -60,13 +60,27 @@ public class ExonautZoneExtension extends SFSExtension {
                 maps[i] =
                         new ExoMap(
                                 mapLoaders[i].getWallFixtures(),
+                                mapLoaders[i].getTeamPlayerSpawns(),
+                                mapLoaders[i].getFFAPlayerSpawns(),
+                                mapLoaders[i].getTeamItemSpawns(),
+                                mapLoaders[i].getFFAItemSpawns(),
                                 mapLoaders[i].getImage(
                                         debugGFXScale, scaledDrawTranslate, scaledDrawSize),
                                 scaledDrawTranslate,
                                 scaledDrawSize,
                                 debugGFXScale);
             } else {
-                maps[i] = new ExoMap(mapLoaders[i].getWallFixtures(), null, null, null, 0f);
+                maps[i] =
+                        new ExoMap(
+                                mapLoaders[i].getWallFixtures(),
+                                mapLoaders[i].getTeamPlayerSpawns(),
+                                mapLoaders[i].getFFAPlayerSpawns(),
+                                mapLoaders[i].getTeamItemSpawns(),
+                                mapLoaders[i].getFFAItemSpawns(),
+                                null,
+                                null,
+                                null,
+                                0f);
             }
         }
 

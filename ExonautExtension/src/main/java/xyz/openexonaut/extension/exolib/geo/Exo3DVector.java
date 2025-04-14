@@ -24,9 +24,9 @@ public class Exo3DVector {
 
     private Exo3DVector applyScaleRotatePosition(
             Exo3DVector scale, Exo3DVector position, String rotation) {
-        float newX = 0;
-        float newY = 0;
-        float newZ = 0;
+        float newX = 0f;
+        float newY = 0f;
+        float newZ = 0f;
         switch (rotation) {
             case "0":
                 newX = this.x * scale.x;

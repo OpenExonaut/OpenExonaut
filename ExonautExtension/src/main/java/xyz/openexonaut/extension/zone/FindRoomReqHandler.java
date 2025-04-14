@@ -18,8 +18,16 @@ public class FindRoomReqHandler extends BaseClientRequestHandler {
             CreateRoomSettings roomSettings = new CreateRoomSettings();
             List<RoomVariable> roomVars = new ArrayList<>();
             List<UserVariable> userVars = new ArrayList<>();
-            int mapId = (int) (Math.random() * 9 + 1);
+            int mapId = (int) (Math.random() * 9f + 1f);
             String mode;
+
+            ExoPlayer playerProperty =
+                    new ExoPlayer(
+                            sender,
+                            (ExoSuit[])
+                                    this.getParentExtension()
+                                            .handleInternalMessage("getSuits", null));
+            sender.setProperty("ExoPlayer", playerProperty);
 
             userVars.add(new SFSUserVariable("nickName", sender.getName()));
             userVars.add(new SFSUserVariable("level", (int) 1));
@@ -29,17 +37,12 @@ public class FindRoomReqHandler extends BaseClientRequestHandler {
             userVars.add(new SFSUserVariable("inactive", false));
             userVars.add(new SFSUserVariable("hacks", (int) 0));
             userVars.add(new SFSUserVariable("pickingup", true));
-            userVars.add(new SFSUserVariable("x", (double) 0));
-            userVars.add(new SFSUserVariable("y", (double) 0));
-
+            userVars.add(new SFSUserVariable("x", (double) 0.0));
+            userVars.add(new SFSUserVariable("y", (double) 0.0));
+            userVars.add(new SFSUserVariable("boost", (int) 0));
+            userVars.add(new SFSUserVariable("teamBoost", (int) 0));
+            userVars.add(new SFSUserVariable("health", playerProperty.suit.Health));
             this.getApi().setUserVariables(sender, userVars);
-            sender.setProperty(
-                    "ExoPlayer",
-                    new ExoPlayer(
-                            sender,
-                            (ExoSuit[])
-                                    this.getParentExtension()
-                                            .handleInternalMessage("getSuits", null)));
 
             roomSettings.setMaxUsers(8);
             roomSettings.setMaxVariablesAllowed(50);

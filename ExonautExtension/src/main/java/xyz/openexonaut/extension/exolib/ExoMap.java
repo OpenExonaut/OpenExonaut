@@ -12,22 +12,44 @@ public class ExoMap {
     }
 
     public final FixtureDef[] wallFixtures;
+    public final Exo2DVector[] teamPlayerSpawns;
+    public final Exo2DVector[] ffaPlayerSpawns;
+    public final ExoItemSpawner[] teamItemSpawns;
+    public final ExoItemSpawner[] ffaItemSpawns;
     public final Image image;
     public final ExoInt2DVector translate;
     public final ExoInt2DVector size;
     public final float scale;
 
+    private boolean finalizedItemSpawns = false;
+
     public ExoMap(
             FixtureDef[] wallFixtures,
+            Exo2DVector[] teamPlayerSpawns,
+            Exo2DVector[] ffaPlayerSpawns,
+            ExoItemSpawner[] teamItemSpawns,
+            ExoItemSpawner[] ffaItemSpawns,
             Image image,
             ExoInt2DVector translate,
             ExoInt2DVector size,
             float scale) {
         this.wallFixtures = wallFixtures;
+        this.teamPlayerSpawns = teamPlayerSpawns;
+        this.ffaPlayerSpawns = ffaPlayerSpawns;
+        this.teamItemSpawns = teamItemSpawns;
+        this.ffaItemSpawns = ffaItemSpawns;
         this.image = image;
         this.translate = translate;
         this.size = size;
         this.scale = scale;
+    }
+
+    public void finishedFinalization() {
+        finalizedItemSpawns = true;
+    }
+
+    public boolean finalized() {
+        return finalizedItemSpawns;
     }
 
     public void draw(Graphics g) {

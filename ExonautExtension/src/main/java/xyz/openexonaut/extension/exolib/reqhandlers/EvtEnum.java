@@ -10,27 +10,26 @@ public enum EvtEnum {
     EVT_SEND_SHOT_POSITION(4, SendMyShotPosition::handle), // SendMyShotPosition
     EVT_SEND_GRENADE_POSITION(5, SendMyGrenadePosition::handle), // SendMyGrenadePosition
     EVT_SEND_CHANGE_WEAPON(6, Echo::handle), // SendChangeWeapon
-    EVT_SEND_PICKUP(8, Echo::handle), // SendActivatePickupEvent TODO: pickup tracking
+    EVT_SEND_PICKUP(8, SendActivatePickupEvent::handle), // SendActivatePickupEvent
     EVT_SEND_GRENADE_EXPLODE(9, Echo::handle), // SendGrenadeExplode TODO: explosives
     EVT_SEND_ROCKET_EXPLODE(16, Echo::handle), // SendRocketExplode TODO: explosives
     EVT_SEND_TAUNT(17, Echo::handle), // SendTaunt
     EVT_SEND_SNIPER_SHOT(18, SendSniperLine::handle), // SendSniperLine
     EVT_SEND_OPP_INFO(23, SendOpponentInfo::handle), // SendOpponentInfo
     EVT_TIME_UPDATE(24, SendTimeUpdate::handle), // SendTimeUpdate
-    EVT_ACTIVE_BOOST_INFO(25, Stub::handle), // SendActiveBoostInfo TODO: pickup tracking
+    EVT_ACTIVE_BOOST_INFO(25, SendActiveBoostInfo::handle), // SendActiveBoostInfo
 
     // ids whose functions are called but have no receipt code (for server processing?)
     EVT_SEND_ROLL(26, Stub::handle), // SendRoll TODO: player movement
     EVT_SEND_AIRDASH(27, Stub::handle), // SendAirdash TODO: player movement
     EVT_SEND_FUEL_CONSUMED(
-            28, Stub::handle), // SendFuelConsumed - sent when starting to recover fuel TODO: fuel
-    // tracking
+            28, SendFuelConsumed::handle), // SendFuelConsumed - sent when starting to recover fuel
 
     // ids which are never sent but have receipt code (probably server-sent or unused)
     EVT_SEND_SUIT_WEAPON(1, ErrorReceipt::handle), // not needed?
     EVT_SEND_DAMAGE(10, ErrorReceipt::handle),
     EVT_SEND_CAPTURED(20, ErrorReceipt::handle),
-    EVT_SEND_PICKUP_COMPLETE(22, ErrorReceipt::handle), // not needed?
+    EVT_SEND_PICKUP_COMPLETE(22, ErrorReceipt::handle),
     EVT_SEND_START_GAME(
             101, ErrorReceipt::handle), // not needed: minor GUI string only which is also set by
     // EVT_TIME_UPDATE

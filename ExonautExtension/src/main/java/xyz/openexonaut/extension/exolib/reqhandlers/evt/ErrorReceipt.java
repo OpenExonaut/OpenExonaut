@@ -14,7 +14,7 @@ public class ErrorReceipt {
                 ExtensionLogLevel.WARN,
                 "unhandled event "
                         + params.getInt("msgType")
-                        + "("
+                        + " ("
                         + name
                         + ") from playerId "
                         + params.getInt("playerId")

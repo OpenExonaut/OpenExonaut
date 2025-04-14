@@ -12,6 +12,8 @@ public class ExoBullet {
     public final float velocityYComponent;
     public final float damage;
     public final ExoPlayer player;
+    public final int weaponId;
+    public final boolean boosted;
 
     public float x;
     public float y;
@@ -34,18 +36,15 @@ public class ExoBullet {
         this.velocityXComponent = (float) Math.cos(angle);
         this.velocityYComponent = (float) Math.sin(angle);
         this.player = player;
+        this.weaponId = player.getWeaponId();
 
         this.x = x;
         this.y = y;
         this.dist = 0f;
 
-        if (player.attackBoost) {
-            this.damage =
-                    damage * 1.2f; // this value (0.2 multiplier) was taken from essentially dead
-            // client code. is this right?
-        } else {
-            this.damage = damage;
-        }
+        float damageModifier = getDamageModifier(player);
+        this.boosted = damageModifier > 1f;
+        this.damage = damage * damageModifier;
     }
 
     // sniper hitscan
@@ -57,22 +56,30 @@ public class ExoBullet {
         this.velocityXComponent = endX; // that's right,
         this.velocityYComponent = endY; // we're gonna cheat!
         this.player = player;
+        this.weaponId = player.getWeaponId();
 
         this.x = startX;
         this.y = startY;
         this.dist = 0f;
 
-        if (player.attackBoost) {
-            this.damage =
-                    damage * 1.2f; // this value (0.2 multiplier) was taken from essentially dead
-            // client code. is this right?
-        } else {
-            this.damage = damage;
-        }
+        float damageModifier = getDamageModifier(player);
+        this.boosted = damageModifier > 1f;
+        this.damage = damage * damageModifier;
     }
 
     public void draw(Graphics g, ExoMap map) {
         ExoInt2DVector drawBullet = new Exo2DVector(x, y).convertNativeToDraw(map.scale);
         g.fillRect(drawBullet.x - 1, drawBullet.y - 1, 3, 3);
+    }
+
+    private static float getDamageModifier(ExoPlayer player) {
+        float modifier = 1f;
+        if (player.getBoost() == ExoPickupEnum.boost_damage.id) {
+            modifier += 0.2f;
+        }
+        if (player.getTeamBoost() == ExoPickupEnum.boost_team_damage.id) {
+            modifier += 0.2f;
+        }
+        return modifier;
     }
 }

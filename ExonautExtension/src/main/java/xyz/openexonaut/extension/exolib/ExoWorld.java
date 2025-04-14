@@ -12,9 +12,9 @@ import com.smartfoxserver.v2.entities.*;
 
 public class ExoWorld {
     public final ExoMap map;
-    private final ExoPlayer[] players;
+    private final Room room;
 
-    private final World world = new World(new Vector2(0, -100), true);
+    private final World world = new World(new Vector2(0f, -100f), true);
 
     private final FixtureDef playerHeadDef = new FixtureDef();
     private final FixtureDef playerBodyDef = new FixtureDef();
@@ -25,13 +25,17 @@ public class ExoWorld {
 
     private final Body walls;
 
+    public final ExoItem[] items;
+
+    private long lastNano = System.nanoTime();
+
     // this "efficiently" handles concurrency automagically; the copy-on-write arraylist is probably
     // slower given the volatility
     private final Set<ExoBullet> activeBullets = ConcurrentHashMap.newKeySet();
 
-    public ExoWorld(ExoMap map, ExoPlayer[] players) {
+    public ExoWorld(ExoMap map, Room room) {
         this.map = map;
-        this.players = players;
+        this.room = room;
 
         wallDef.awake = false;
         playerDef.fixedRotation = true;
@@ -46,7 +50,7 @@ public class ExoWorld {
         head.setRadius(1.5f);
 
         PolygonShape body = new PolygonShape();
-        body.setAsBox(1.5f, 5f, new Vector2(0f, 6.5f), 0);
+        body.setAsBox(1.5f, 5f, new Vector2(0f, 6.5f), 0f);
 
         CircleShape feet = new CircleShape();
         feet.setPosition(new Vector2(0f, 1.5f));
@@ -55,11 +59,41 @@ public class ExoWorld {
         playerHeadDef.shape = head;
         playerBodyDef.shape = body;
         playerFeetDef.shape = feet;
+
+        if (!map.finalized()) {
+            for (ExoItemSpawner spawner : map.teamItemSpawns) {
+                finalizeItemSpawner(spawner);
+            }
+            for (ExoItemSpawner spawner : map.ffaItemSpawns) {
+                finalizeItemSpawner(spawner);
+            }
+            map.finishedFinalization();
+        }
+
+        if (room.getVariable("mode").getStringValue().equals("team")) {
+            items = new ExoItem[map.teamItemSpawns.length];
+            for (int i = 0; i < items.length; i++) {
+                items[i] = new ExoItem(map.teamItemSpawns[i]);
+            }
+        } else {
+            items = new ExoItem[map.ffaItemSpawns.length];
+            for (int i = 0; i < items.length; i++) {
+                items[i] = new ExoItem(map.ffaItemSpawns[i]);
+            }
+        }
+    }
+
+    private void finalizeItemSpawner(ExoItemSpawner spawner) {
+        float center = pickupSpawnerRaycast(spawner.x, spawner.y);
+        float left = pickupSpawnerRaycast(spawner.x - 5f, spawner.y);
+        float right = pickupSpawnerRaycast(spawner.x + 5f, spawner.y);
+
+        spawner.finalize(Math.min(Math.max(center, Math.max(left, right)), 12f));
     }
 
     public void spawnPlayer(int id) {
-        ExoPlayer player = players[id - 1];
-        playerDef.position.set(player.x, player.y);
+        ExoPlayer player = (ExoPlayer) room.getPlayersList().get(id - 1).getProperty("ExoPlayer");
+        playerDef.position.set(player.getX(), player.getY());
         player.body = world.createBody(playerDef);
         player.body.createFixture(playerHeadDef).setUserData(new ExoUserData(id, 1));
         player.body.createFixture(playerBodyDef).setUserData(new ExoUserData(id, 2));
@@ -70,22 +104,23 @@ public class ExoWorld {
         return activeBullets.add(bullet);
     }
 
-    public void handleSnipe(ExoBullet bullet, Room room) {
+    public void handleSnipe(ExoBullet bullet) {
         Vector2 delta =
                 new Vector2(
                         bullet.velocityXComponent - bullet.x, bullet.velocityYComponent - bullet.y);
         delta.setLength(1000f);
 
         ExoUserData raycastData =
-                raycast(
+                bulletRaycast(
                         bullet.x,
                         bullet.y,
                         bullet.x + delta.x,
                         bullet.y + delta.y,
-                        bullet.player.id);
+                        bullet.player.user.getPlayerId());
         if (raycastData != null) {
             if (raycastData.id != 0) {
-                players[raycastData.id - 1].hit(bullet, raycastData.part, room);
+                ((ExoPlayer) room.getPlayersList().get(raycastData.id - 1).getProperty("ExoPlayer"))
+                        .hit(bullet, raycastData.part, room);
             }
         }
     }
@@ -95,8 +130,12 @@ public class ExoWorld {
 
         g.translate((int) map.translate.x, (int) map.translate.y);
 
-        for (int i = 0; i < players.length; i++) {
-            ExoPlayer player = players[i];
+        for (ExoItem item : items) {
+            item.draw(g, map.scale);
+        }
+
+        for (User user : room.getPlayersList()) {
+            ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
             if (player != null) {
                 player.draw(g, map);
             }
@@ -110,14 +149,32 @@ public class ExoWorld {
         g.translate(-(int) map.translate.x, -(int) map.translate.y);
     }
 
-    public void simulate(float deltaTime, Room room) {
+    public void tick() {
+        long nano = System.nanoTime();
+        float deltaTime = (nano - lastNano) / 1_000_000_000f;
+        lastNano = nano;
+
+        for (User user : room.getPlayersList()) {
+            ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
+            player.tick(room);
+        }
+
+        for (ExoItem item : items) {
+            item.tick();
+        }
+
+        simulate(deltaTime);
+    }
+
+    public void simulate(float deltaTime) {
         List<ExoBullet> expiringBullets = new ArrayList<>();
         HashMap<ExoBullet, ExoUserData> playerHits = new HashMap<>();
 
-        for (ExoPlayer player : players) {
+        for (User user : room.getPlayersList()) {
+            ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
             if (player != null) {
                 synchronized (player) {
-                    player.body.setTransform(new Vector2(player.x, player.y), 0);
+                    player.body.setTransform(new Vector2(player.getX(), player.getY()), 0f);
                 }
             }
         }
@@ -137,12 +194,12 @@ public class ExoWorld {
             float raycastY = bullet.velocityYComponent * raycastDist;
 
             ExoUserData raycastData =
-                    raycast(
+                    bulletRaycast(
                             bullet.x,
                             bullet.y,
                             bullet.x + raycastX,
                             bullet.y + raycastY,
-                            bullet.player.id);
+                            bullet.player.user.getPlayerId());
 
             if (raycastData != null) {
                 expiringBullets.add(bullet);
@@ -165,11 +222,13 @@ public class ExoWorld {
         activeBullets.removeAll(expiringBullets);
         for (ExoBullet bullet : playerHits.keySet()) {
             ExoUserData hitData = playerHits.get(bullet);
-            players[hitData.id - 1].hit(bullet, hitData.part, room);
+            ((ExoPlayer) room.getPlayersList().get(hitData.id - 1).getProperty("ExoPlayer"))
+                    .hit(bullet, hitData.part, room);
         }
     }
 
-    private ExoUserData raycast(float startX, float startY, float endX, float endY, int shooterID) {
+    private ExoUserData bulletRaycast(
+            float startX, float startY, float endX, float endY, int shooterID) {
         final class RaycastHandler implements RayCastCallback {
             private ExoUserData result = null;
             private float raycastFraction = 2f;
@@ -208,5 +267,43 @@ public class ExoWorld {
         world.rayCast(raycastHandler, endX, endY, startX, startY);
 
         return raycastHandler.result;
+    }
+
+    private float pickupSpawnerRaycast(float startX, float startY) {
+        final class RaycastHandler implements RayCastCallback {
+            private float raycastFraction = 1f;
+            private boolean backcast = false;
+
+            @Override
+            public float reportRayFixture(
+                    Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
+                if (backcast) {
+                    float currentFraction = 1f - fraction;
+                    if (currentFraction < raycastFraction) {
+                        ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
+                        if (exoUserData.id == 0) {
+                            raycastFraction = currentFraction;
+                        }
+                    }
+                } else {
+                    ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
+                    if (exoUserData.id == 0) {
+                        raycastFraction = fraction;
+                        return fraction;
+                    }
+                }
+                return 1f;
+            }
+        }
+
+        RaycastHandler raycastHandler = new RaycastHandler();
+
+        raycastHandler.backcast = false;
+        world.rayCast(raycastHandler, startX, startY, startX, startY - 12f);
+
+        raycastHandler.backcast = true;
+        world.rayCast(raycastHandler, startX, startY - 12f, startX, startY);
+
+        return raycastHandler.raycastFraction * 12f;
     }
 }

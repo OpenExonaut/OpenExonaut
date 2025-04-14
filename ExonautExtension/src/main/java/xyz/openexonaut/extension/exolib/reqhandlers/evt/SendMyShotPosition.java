@@ -25,7 +25,7 @@ public class SendMyShotPosition {
                 (ExoWeapon)
                         evtHandler
                                 .getParentExtension()
-                                .handleInternalMessage("getWeapon", player.weaponId);
+                                .handleInternalMessage("getWeapon", player.getWeaponId());
         float range = weapon.Range;
         float velocity = weapon.Velocity;
         float damage = weapon.Damage;
