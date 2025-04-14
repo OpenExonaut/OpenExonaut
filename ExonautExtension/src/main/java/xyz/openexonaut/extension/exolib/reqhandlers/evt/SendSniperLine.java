@@ -16,7 +16,7 @@ public class SendSniperLine {
                 (ExoWeapon)
                         evtHandler
                                 .getParentExtension()
-                                .handleInternalMessage("getWeapon", player.weaponId);
+                                .handleInternalMessage("getWeapon", player.getWeaponId());
         float damage = weapon.Damage;
 
         ExoMod weaponMod = player.suit.WeaponMod;

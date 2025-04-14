@@ -140,7 +140,7 @@ public class MapLoader {
         for (int i = 0; i < teamItemSpawns.length; i++) {
             teamItemSpawns[i] =
                     new ExoItemSpawner(
-                            Integer.parseInt(teamItemSpawnStrings[i * 4]),
+                            ExoPickupEnum.get(Integer.parseInt(teamItemSpawnStrings[i * 4])),
                                     Float.parseFloat(teamItemSpawnStrings[(i * 4) + 1]),
                             Float.parseFloat(teamItemSpawnStrings[(i * 4) + 2]),
                                     Float.parseFloat(teamItemSpawnStrings[(i * 4) + 3]));
@@ -148,7 +148,7 @@ public class MapLoader {
         for (int i = 0; i < ffaItemSpawns.length; i++) {
             ffaItemSpawns[i] =
                     new ExoItemSpawner(
-                            Integer.parseInt(ffaItemSpawnStrings[i * 4]),
+                            ExoPickupEnum.get(Integer.parseInt(ffaItemSpawnStrings[i * 4])),
                                     Float.parseFloat(ffaItemSpawnStrings[(i * 4) + 1]),
                             Float.parseFloat(ffaItemSpawnStrings[(i * 4) + 2]),
                                     Float.parseFloat(ffaItemSpawnStrings[(i * 4) + 3]));
@@ -249,5 +249,21 @@ public class MapLoader {
         }
 
         return retVal;
+    }
+
+    public Exo2DVector[] getTeamPlayerSpawns() {
+        return teamPlayerSpawns;
+    }
+
+    public Exo2DVector[] getFFAPlayerSpawns() {
+        return ffaPlayerSpawns;
+    }
+
+    public ExoItemSpawner[] getTeamItemSpawns() {
+        return teamItemSpawns;
+    }
+
+    public ExoItemSpawner[] getFFAItemSpawns() {
+        return ffaItemSpawns;
     }
 }
