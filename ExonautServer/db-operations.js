@@ -6,17 +6,12 @@ var newUserFunction = function (
   displayName,
   authpass,
   forgot,
-  collection,
-  gameData
+  collection
 ) {
   //Creates new user in web server and database
   return new Promise((fulfill, reject) => {
-    var inventoryArray = [];
     var today = new Date();
     today.setDate(today.getDate() + 1);
-    for (var suit of gameData.suits) {
-      if (suit.Guest == '1') inventoryArray.push(suit.ID);
-    }
     if (displayName.charAt(displayName.length - 1) == ' ')
       displayName = displayName.substring(0, displayName.length - 1);
     var playerFile = {
@@ -69,7 +64,7 @@ var newUserFunction = function (
         Hacks_DamageBoost: 0,
         Hacks_ArmorBoost: 0,
       },
-      inventory: inventoryArray,
+      inventory: [],
       friends: [],
       forgot: forgot,
       requests: [],

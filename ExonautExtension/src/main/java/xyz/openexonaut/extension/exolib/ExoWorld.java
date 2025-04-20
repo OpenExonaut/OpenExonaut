@@ -135,8 +135,8 @@ public class ExoWorld {
         }
 
         for (User user : room.getPlayersList()) {
-            ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
-            if (player != null) {
+            if (user != null) {
+                ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
                 player.draw(g, map);
             }
         }
@@ -155,8 +155,10 @@ public class ExoWorld {
         lastNano = nano;
 
         for (User user : room.getPlayersList()) {
-            ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
-            player.tick(room);
+            if (user != null) {
+                ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
+                player.tick(room);
+            }
         }
 
         for (ExoItem item : items) {
@@ -171,8 +173,8 @@ public class ExoWorld {
         HashMap<ExoBullet, ExoUserData> playerHits = new HashMap<>();
 
         for (User user : room.getPlayersList()) {
-            ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
-            if (player != null) {
+            if (user != null) {
+                ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
                 synchronized (player) {
                     player.body.setTransform(new Vector2(player.getX(), player.getY()), 0f);
                 }

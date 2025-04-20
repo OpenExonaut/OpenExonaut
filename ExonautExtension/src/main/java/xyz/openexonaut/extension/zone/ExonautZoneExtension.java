@@ -6,16 +6,26 @@ import java.util.*;
 
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
+import com.mongodb.client.*;
+import com.mongodb.client.model.*;
+import org.bson.*;
 
+import com.smartfoxserver.bitswarm.sessions.*;
+import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.extensions.*;
 
 import xyz.openexonaut.extension.exolib.*;
 import xyz.openexonaut.extension.exolib.geo.*;
+import xyz.openexonaut.extension.zone.eventhandlers.*;
+import xyz.openexonaut.extension.zone.reqhandlers.*;
 
 public class ExonautZoneExtension extends SFSExtension {
     private Properties props = null;
     private JsonNode gameData = null;
     private MapLoader[] mapLoaders = new MapLoader[9];
+    private MongoClient mongoClient = null;
+    private MongoDatabase database = null;
+    private MongoCollection<Document> userCollection = null;
 
     private ExoMap[] maps = new ExoMap[9];
     private ExoWeapon[] weapons = null;
@@ -36,11 +46,15 @@ public class ExonautZoneExtension extends SFSExtension {
             gameData =
                     new ObjectMapper()
                             .readTree(
-                                    new URL(
-                                            props.getProperty("httpURI")
-                                                    + "/exonaut/gamedata.json"));
+                                    URI.create(
+                                                    props.getProperty("httpURI")
+                                                            + "/exonaut/gamedata.json")
+                                            .toURL());
+            mongoClient = MongoClients.create(props.getProperty("mongoURI"));
+            database = mongoClient.getDatabase("openexonaut");
+            userCollection = database.getCollection("users");
         } catch (IOException e) {
-            trace(ExtensionLogLevel.ERROR, e);
+            throw new RuntimeException(e);
         }
 
         debugGFX = Boolean.parseBoolean(props.getProperty("debugGFX"));
@@ -104,7 +118,45 @@ public class ExonautZoneExtension extends SFSExtension {
 
         addRequestHandler("findRoom", FindRoomReqHandler.class);
 
+        addEventHandler(SFSEventType.USER_LOGIN, UserLoginHandler.class);
+        addEventHandler(SFSEventType.USER_JOIN_ZONE, UserJoinZoneHandler.class);
+
         trace(ExtensionLogLevel.INFO, "Exonaut Zone Extension init finished");
+    }
+
+    private JsonNode getFullUserObject(String tegid) {
+        Document userJSON = userCollection.find(Filters.eq("user.TEGid", tegid)).first();
+        if (userJSON != null) {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode data = null;
+            try {
+                data = mapper.readTree(userJSON.toJson());
+                return data;
+            } catch (IOException e) {
+                trace(ExtensionLogLevel.ERROR, e);
+            }
+        }
+        return null;
+    }
+
+    // returns: dname if valid non-guest login, null otherwise; input password is encrypted by SFS2X
+    private String checkLogin(Session session, String username, String password) {
+        JsonNode userObject = getFullUserObject(username);
+        if (userObject != null) {
+            if (getApi().checkSecurePassword(
+                            session, userObject.get("user").get("authid").asText(), password)) {
+                return userObject.get("user").get("dname").asText();
+            }
+        }
+        return null;
+    }
+
+    private JsonNode getPlayerObject(String tegid) {
+        JsonNode userObject = getFullUserObject(tegid);
+        if (userObject != null) {
+            return userObject.get("player");
+        }
+        return null;
     }
 
     @Override
@@ -116,6 +168,12 @@ public class ExonautZoneExtension extends SFSExtension {
                 return suits;
             case "getWeapons":
                 return weapons;
+            case "checkLogin":
+                Object[] loginArgs = (Object[]) parameters;
+                return checkLogin(
+                        (Session) loginArgs[0], (String) loginArgs[1], (String) loginArgs[2]);
+            case "getPlayerObject":
+                return getPlayerObject((String) parameters);
             default:
                 trace(ExtensionLogLevel.ERROR, "Invalid internal message " + command);
                 return null;

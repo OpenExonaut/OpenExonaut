@@ -4,14 +4,7 @@ const crypto = require('crypto');
 const XMLWriter = require('xml-writer');
 
 module.exports = {
-  handleRegister: function (
-    username,
-    password,
-    names,
-    forgot,
-    collection,
-    gameData
-  ) {
+  handleRegister: function (username, password, names, forgot, collection) {
     return new Promise(function (resolve, reject) {
       bcrypt.hash(password, 10, (err, hash) => {
         var name = '';
@@ -30,20 +23,13 @@ module.exports = {
               },
             ],
           })
-          .then((user) => {
-            if (user != null) {
+          .then((u) => {
+            if (u != null) {
               resolve('login');
             } else {
               bcrypt.hash(forgot, 10, (er, has) => {
                 dbOp
-                  .createNewUser(
-                    username,
-                    name,
-                    hash,
-                    has,
-                    collection,
-                    gameData
-                  )
+                  .createNewUser(username, name, hash, has, collection)
                   .then((u) => {
                     resolve(u);
                   })
@@ -111,45 +97,44 @@ module.exports = {
           'user.TEGid': `${TEGid}`,
           'user.authid': `${authid}`,
         })
-        .then((user) => {
-          if (user != null) {
+        .then((u) => {
+          if (u != null) {
             //User exists
-            if (user.player.faction == 0) {
+            if (u.player.Faction == 0) {
               //User has not yet joined a faction
               resolve(
                 `<result status="newplayer" TEGID="${TEGid}" LoginName="${authid}"/>`
               );
             } else {
               xw = new XMLWriter();
-              xw.startDocument()
-                .startElement('result')
+              xw.startElement('result')
                 .writeAttribute('status', 'exoplayer')
                 .writeAttribute('TEGID', TEGid)
                 .writeAttribute('LoginName', authid)
                 .writeAttribute(
                   'ID',
-                  Number('0x' + user.session.token.split('-')[0].slice(0, -1))
+                  Number('0x' + u.session.token.split('-')[0].slice(0, -1))
                 ) // needs to fit an i32. any better ideas?
-                .writeAttribute('Faction', user.player.Faction)
-                .writeAttribute('Level', user.player.Level)
-                .writeAttribute('XP', user.player.XP)
-                .writeAttribute('Credits', user.player.Credits)
-                .writeAttribute('SessionID', user.session.token)
-                .writeAttribute('LastSuit', user.player.LastSuit);
+                .writeAttribute('Faction', u.player.Faction)
+                .writeAttribute('Level', u.player.Level)
+                .writeAttribute('XP', u.player.XP)
+                .writeAttribute('Credits', u.player.Credits)
+                .writeAttribute('SessionID', u.session.token)
+                .writeAttribute('LastSuit', u.player.LastSuit);
 
               xw.startElement('suitsOwned');
-              for (suit in user.inventory) {
+              for (suit of u.inventory) {
                 xw.writeElement('suit', suit);
               }
               xw.endElement();
 
               // TODO
-              xw.writeElement('missionsCompleted');
+              xw.writeElement('missionsCompleted', '');
 
               // TODO
-              xw.writeElement('missionsProgress');
+              xw.writeElement('missionsProgress', '');
 
-              xw.endElement().endDocument();
+              xw.endElement();
               resolve(xw.toString());
             }
           } else {
@@ -180,12 +165,13 @@ module.exports = {
           if (foundSuit.Faction == faction) {
             collection
               .findOne({ 'user.TEGid': TEGid, 'user.authid': login })
-              .then((user) => {
-                if (user.Faction == 0) {
+              .then((u) => {
+                if (u.player.Faction == 0) {
                   collection
                     .updateOne(
                       { 'user.TEGid': TEGid, 'user.authid': login },
                       {
+                        $push: { inventory: suitToEquip },
                         $set: {
                           'player.LastSuit': suitToEquip,
                           'player.Faction': faction,
@@ -194,30 +180,28 @@ module.exports = {
                     )
                     .then(() => {
                       xw = new XMLWriter();
-                      xw.startDocument()
-                        .startElement('result')
+                      xw.startElement('result')
                         .writeAttribute('status', 'new')
                         .writeAttribute(
                           'id',
                           Number(
-                            '0x' + user.session.token.split('-')[0].slice(0, -1)
+                            '0x' + u.session.token.split('-')[0].slice(0, -1)
                           )
                         );
 
                       xw.startElement('suitsOwned');
-                      for (suit in user.inventory) {
+                      for (suit of u.inventory) {
                         xw.writeElement('suit', suit);
                       }
                       xw.endElement();
 
                       // TODO
-                      xw.writeElement('missionsCompleted');
+                      xw.writeElement('missionsCompleted', '');
 
                       // TODO
-                      xw.writeElement('missionsProgress');
+                      xw.writeElement('missionsProgress', '');
 
                       xw.endElement();
-                      xw.endDocument();
                       resolve(xw.toString());
                     });
                 } else {
@@ -250,9 +234,9 @@ module.exports = {
               'user.TEGid': TEGid,
               'session.token': { $regex: exIdRegex },
             })
-            .then((user) => {
-              if (user != null) {
-                if (user.player.Credits >= foundSuit.Cost) {
+            .then((u) => {
+              if (u != null) {
+                if (u.player.Credits >= foundSuit.Cost) {
                   collection
                     .updateOne(
                       {

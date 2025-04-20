@@ -10,7 +10,7 @@ An open-source lobby, service, and game server for Project Exonaut, built upon t
 [//]: # (OpenATBP docs/screenshot2.png was here)
 
 ## Status
-Currently, games can be entered and the characters moved around, and weapon uses propagated. Collision, the damage formula, game termination, and meta-game features still need to be worked on.
+Currently, games can be entered and played, though not ended, and the metagame can be logged into. Explosives, motion interpolation, game termination, and achievements still need to be worked on.
 
 ## Server Architecture
 Originally, Project Exonaut required several server-side components in order to to function:
@@ -19,7 +19,7 @@ Originally, Project Exonaut required several server-side components in order to 
 * Socket policy server to satisfy the Unity Web Player [security sandbox](https://docs.unity3d.com/351/Documentation/Manual/SecuritySandbox.html)
 * SmartFoxServer2X with custom zone and room extensions acting as the matchmaking server and actual game server respectively
 
-To simplify development and deployment, all but the last component have been combined into one piece of software, which is available under the `ExonautServer` directory. The SmartFoxServer2X extension lives under the `ExonautExtension` directory.
+To simplify development and deployment, all but the last component have been combined into one piece of software, which is available under the `ExonautServer` directory. The SmartFoxServer2X extensions live under the `ExonautExtension` directory.
 
 ~~More in-depth explanations of each component, how the client interacts with them, and how request/response packets are structured can be found in the `docs/` folder.~~
 This is unfortunately not available yet, but work is slowly being done. For the time being, feel free to reference decompiled client code generated via ILSpy/dnSpy.

@@ -1,6 +1,6 @@
 <zone>
   <name>Exonaut</name>
-  <isCustomLogin>false</isCustomLogin>
+  <isCustomLogin>true</isCustomLogin>
   <isForceLogout>true</isForceLogout>
   <applyWordsFilterToUserName>true</applyWordsFilterToUserName>
   <applyWordsFilterToRoomName>true</applyWordsFilterToRoomName>

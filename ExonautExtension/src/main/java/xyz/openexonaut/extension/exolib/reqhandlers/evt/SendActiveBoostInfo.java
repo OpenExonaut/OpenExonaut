@@ -12,6 +12,7 @@ public class SendActiveBoostInfo {
                 (ExoItem[]) evtHandler.getParentExtension().handleInternalMessage("getItems", null);
         for (int i = 0; i < items.length; i++) {
             ExoItem item = items[i];
+            item.tick(); // report accurate times
             if (!item.active()) {
                 ISFSObject oppResponse = new SFSObject();
                 oppResponse.putInt("playerId", params.getInt("playerId"));

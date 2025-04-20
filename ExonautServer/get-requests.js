@@ -20,14 +20,14 @@ module.exports = {
     return new Promise(function (resolve, reject) {
       collection
         .findOne({ 'user.TEGid': { $regex: new RegExp(`^${username}$`, 'i') } })
-        .then((user) => {
-          if (user != null) {
-            bcrypt.compare(password, user.user.authpass, (err, res) => {
+        .then((u) => {
+          if (u != null) {
+            bcrypt.compare(password, u.user.authpass, (err, res) => {
               if (res) {
-                var expireDate = Date.parse(user.session.expires_at);
+                var expireDate = Date.parse(u.session.expires_at);
                 if (token != '' && Date.now() < expireDate.valueOf()) {
-                  if (user.session.token == token) {
-                    resolve(user);
+                  if (u.session.token == token) {
+                    resolve(u);
                   } else reject();
                 } else {
                   var newToken = `${crypto.randomUUID()}`;
@@ -40,7 +40,7 @@ module.exports = {
                   };
                   const options = { upset: false };
                   const update = { $set: { session: newSession } };
-                  user.session = newSession;
+                  u.session = newSession;
                   collection
                     .updateOne(
                       {
@@ -52,7 +52,7 @@ module.exports = {
                       options
                     )
                     .then((d) => {
-                      resolve(user);
+                      resolve(u);
                     })
                     .catch(console.error);
                 }

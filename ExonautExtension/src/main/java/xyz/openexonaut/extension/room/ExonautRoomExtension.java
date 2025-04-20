@@ -88,24 +88,28 @@ public class ExonautRoomExtension extends SFSExtension {
 
     // TODO: hook into actual functionality
     public void creditsXPRewardSolo() {
-        List<User> sortedUsers = new ArrayList<>(room.getUserList());
+        List<User> sortedUsers = new ArrayList<>(room.getPlayersList());
         Collections.sort(
                 sortedUsers,
-                (a, b) ->
-                        ((ExoPlayer) b.getProperty("ExoPlayer")).getHacks()
-                                - ((ExoPlayer) a.getProperty("ExoPlayer"))
-                                        .getHacks()); // sort by descending hacks
+                Comparator.nullsLast(
+                        (a, b) ->
+                                ((ExoPlayer) b.getProperty("ExoPlayer")).getHacks()
+                                        - ((ExoPlayer) a.getProperty("ExoPlayer"))
+                                                .getHacks())); // sort by descending hacks
         int mostHacks = ((ExoPlayer) sortedUsers.get(0).getProperty("ExoPlayer")).getHacks();
 
         int[] award = new int[sortedUsers.size()]; // indexed by unsorted ids
         for (User user : sortedUsers) {
-            int id = user.getPlayerId() - 1;
-            int hacks = ((ExoPlayer) user.getProperty("ExoPlayer")).getHacks();
-            award[id] = 5; // participation
-            award[id] += hacks * 5; // hacks
-            if (hacks == mostHacks) {
-                award[id] += 10; // winning. for team matches, this is applied to everyone on the
-                // winning team (team with most hacks)
+            if (user != null) {
+                int id = user.getPlayerId() - 1;
+                int hacks = ((ExoPlayer) user.getProperty("ExoPlayer")).getHacks();
+                award[id] = 5; // participation
+                award[id] += hacks * 5; // hacks
+                if (hacks == mostHacks) {
+                    award[id] +=
+                            10; // winning. for team matches, this is applied to everyone on the
+                    // winning team (team with most hacks)
+                }
             }
         }
     }
