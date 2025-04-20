@@ -16,9 +16,8 @@ import xyz.openexonaut.extension.exolib.reqhandlers.*;
 
 public class ExoPlayer {
     public final User user;
-    public final String nickname;
-    public final int suitId;
-    public final ExoSuit suit;
+
+    public ExoSuit suit = null;
 
     public float crashTimer = 5f;
     public float invicibilityTimer = 0f;
@@ -37,11 +36,8 @@ public class ExoPlayer {
 
     public Body body = null;
 
-    public ExoPlayer(User user, ExoSuit[] suits) {
+    public ExoPlayer(User user) {
         this.user = user;
-        this.nickname = user.getName();
-        this.suitId = user.getVariable("suitId").getIntValue();
-        this.suit = suits[suitId - 1];
     }
 
     public String getClientState() {
@@ -105,6 +101,10 @@ public class ExoPlayer {
                 }
             }
         }
+    }
+
+    public void setSuit(ExoSuit suit) {
+        this.suit = suit;
     }
 
     // return value: seconds since last tick

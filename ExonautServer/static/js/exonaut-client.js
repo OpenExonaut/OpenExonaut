@@ -137,7 +137,14 @@ function Exonaut_CheckMSIBAuthorized(name, callback) {
 }
 
 function Exonaut_GetCookies(name, callback) {
-  unity.SendMessage(name, callback, document.cookie);
+  // Unity does not handle decoding the URL-encoded spaces
+  var cookies = document.cookie.split(';');
+  for (var i = 0; i < cookies.length; i++) {
+    if (cookies[i].indexOf('dname') != -1) {
+      cookies[i] = cookies[i].replace(/%20/g, ' ');
+    }
+  }
+  unity.SendMessage(name, callback, cookies.join(';'));
 }
 
 var AchievementUnityComm = {

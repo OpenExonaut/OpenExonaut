@@ -149,19 +149,18 @@ mongoClient.connect((err) => {
           req.body.password,
           names,
           req.body.forgot,
-          playerCollection,
-          gameData
+          playerCollection
         )
-        .then((user) => {
-          if (user == 'login') {
+        .then((u) => {
+          if (u == 'login') {
             res.redirect('/login?exists=true');
           } else {
-            res.cookie('TEGid', user.user.TEGid);
-            res.cookie('authid', user.user.authid);
-            res.cookie('dname', user.user.dname);
-            res.cookie('authpass', user.user.authpass);
-            var date = Date.parse(user.session.expires_at);
-            res.cookie('session_token', user.session.token, {
+            res.cookie('TEGid', u.user.TEGid);
+            res.cookie('authid', u.user.authid);
+            res.cookie('dname', u.user.dname);
+            res.cookie('authpass', u.user.authpass);
+            var date = Date.parse(u.session.expires_at);
+            res.cookie('session_token', u.session.token, {
               maxAge: date.valueOf() - Date.now(),
             });
             res.cookie('logged', true);
@@ -219,21 +218,21 @@ mongoClient.connect((err) => {
           session_token,
           playerCollection
         )
-        .then((user) => {
-          var date = Date.parse(user.session.expires_at);
-          res.cookie('TEGid', user.user.TEGid, {
+        .then((u) => {
+          var date = Date.parse(u.session.expires_at);
+          res.cookie('TEGid', u.user.TEGid, {
             maxAge: date.valueOf() - Date.now(),
           });
-          res.cookie('authid', user.user.authid, {
+          res.cookie('authid', u.user.authid, {
             maxAge: date.valueOf() - Date.now(),
           });
-          res.cookie('dname', user.user.dname, {
+          res.cookie('dname', u.user.dname, {
             maxAge: date.valueOf() - Date.now(),
           });
-          res.cookie('authpass', user.user.authpass, {
+          res.cookie('authpass', u.user.authpass, {
             maxAge: date.valueOf() - Date.now(),
           });
-          res.cookie('session_token', user.session.token, {
+          res.cookie('session_token', u.session.token, {
             maxAge: date.valueOf() - Date.now(),
           });
           res.cookie('logged', true, {
