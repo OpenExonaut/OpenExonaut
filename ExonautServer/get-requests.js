@@ -38,9 +38,15 @@ module.exports = {
                     expires_at: today,
                     renewable: false,
                   };
-                  const options = { upset: false };
-                  const update = { $set: { session: newSession } };
+                  var newAuthID = `${crypto.randomBytes(48).toString('base64url')}`;
+                  const update = {
+                    $set: {
+                      session: newSession,
+                      'user.authid': newAuthID,
+                    },
+                  };
                   u.session = newSession;
+                  u.user.authid = newAuthID;
                   collection
                     .updateOne(
                       {
@@ -48,8 +54,7 @@ module.exports = {
                           $regex: new RegExp(`^${username}$`, 'i'),
                         },
                       },
-                      update,
-                      options
+                      update
                     )
                     .then((d) => {
                       resolve(u);

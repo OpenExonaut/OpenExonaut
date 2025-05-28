@@ -2,7 +2,7 @@ package xyz.openexonaut.extension.zone.eventhandlers;
 
 import java.util.*;
 
-import com.fasterxml.jackson.databind.*;
+import org.bson.*;
 
 import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.entities.*;
@@ -10,7 +10,7 @@ import com.smartfoxserver.v2.entities.variables.*;
 import com.smartfoxserver.v2.exceptions.*;
 import com.smartfoxserver.v2.extensions.*;
 
-import xyz.openexonaut.extension.exolib.*;
+import xyz.openexonaut.extension.exolib.game.*;
 
 public class UserJoinZoneHandler extends BaseServerEventHandler {
     @Override
@@ -29,12 +29,10 @@ public class UserJoinZoneHandler extends BaseServerEventHandler {
 
             varUpdate.add(new SFSUserVariable("level", (int) 1));
         } else {
-            JsonNode playerObject =
-                    (JsonNode)
-                            this.getParentExtension()
-                                    .handleInternalMessage("getPlayerObject", tegid);
+            Document playerObject =
+                    (Document) getParentExtension().handleInternalMessage("getPlayerObject", tegid);
 
-            varUpdate.add(new SFSUserVariable("level", playerObject.get("Level").asInt()));
+            varUpdate.add(new SFSUserVariable("level", playerObject.getInteger("Level")));
         }
 
         varUpdate.add(new SFSUserVariable("nickName", displayName));

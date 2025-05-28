@@ -17,12 +17,16 @@ public class ExoLineSegment {
     public boolean equals(Object o) {
         if (o instanceof ExoLineSegment) {
             ExoLineSegment other = (ExoLineSegment) o;
-            return (this.vertexOne.equals(other.vertexOne)
-                            && this.vertexTwo.equals(other.vertexTwo))
-                    || (this.vertexOne.equals(other.vertexTwo)
-                            && this.vertexTwo.equals(other.vertexOne));
+            return (vertexOne.equals(other.vertexOne) && vertexTwo.equals(other.vertexTwo))
+                    || (vertexOne.equals(other.vertexTwo) && vertexTwo.equals(other.vertexOne));
         }
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+        if (isDegenerate()) return vertexOne.hashCode(); // avoid 0 being common
+        return vertexOne.hashCode() ^ vertexTwo.hashCode();
     }
 
     @Override

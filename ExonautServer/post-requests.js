@@ -57,6 +57,7 @@ module.exports = {
                     expires_at: today,
                     renewable: false,
                   };
+                  var newAuthID = `${crypto.randomBytes(48).toString('base64url')}`;
                   collection
                     .updateOne(
                       {
@@ -67,11 +68,15 @@ module.exports = {
                       {
                         $set: {
                           session: newSession,
+                          'user.authid': newAuthID,
                           'user.authpass': hash,
                         },
                       }
                     )
                     .then((r) => {
+                      u.session = newSession;
+                      u.user.authid = newAuthID;
+                      u.user.authpass = hash;
                       resolve(u);
                     })
                     .catch((e) => {
@@ -164,49 +169,45 @@ module.exports = {
         if (foundSuit.Guest == '1') {
           if (foundSuit.Faction == faction) {
             collection
-              .findOne({ 'user.TEGid': TEGid, 'user.authid': login })
-              .then((u) => {
-                if (u.player.Faction == 0) {
-                  collection
-                    .updateOne(
-                      { 'user.TEGid': TEGid, 'user.authid': login },
-                      {
-                        $push: { inventory: suitToEquip },
-                        $set: {
-                          'player.LastSuit': suitToEquip,
-                          'player.Faction': faction,
-                        },
-                      }
-                    )
-                    .then(() => {
-                      xw = new XMLWriter();
-                      xw.startElement('result')
-                        .writeAttribute('status', 'new')
-                        .writeAttribute(
-                          'id',
-                          Number(
-                            '0x' + u.session.token.split('-')[0].slice(0, -1)
-                          )
-                        );
+              .findOneAndUpdate(
+                {
+                  'user.TEGid': TEGid,
+                  'user.authid': login,
+                  'player.Faction': 0,
+                },
+                {
+                  $push: { inventory: suitToEquip },
+                  $set: {
+                    'player.LastSuit': suitToEquip,
+                    'player.Faction': faction,
+                  },
+                },
+                { returnOriginal: false }
+              )
+              .then((result) => {
+                u = result.value;
+                xw = new XMLWriter();
+                xw.startElement('result')
+                  .writeAttribute('status', 'new')
+                  .writeAttribute(
+                    'id',
+                    Number('0x' + u.session.token.split('-')[0].slice(0, -1))
+                  );
 
-                      xw.startElement('suitsOwned');
-                      for (suit of u.inventory) {
-                        xw.writeElement('suit', suit);
-                      }
-                      xw.endElement();
-
-                      // TODO
-                      xw.writeElement('missionsCompleted', '');
-
-                      // TODO
-                      xw.writeElement('missionsProgress', '');
-
-                      xw.endElement();
-                      resolve(xw.toString());
-                    });
-                } else {
-                  reject(new Error('Player is already installed'));
+                xw.startElement('suitsOwned');
+                for (suit of u.inventory) {
+                  xw.writeElement('suit', suit);
                 }
+                xw.endElement();
+
+                // TODO
+                xw.writeElement('missionsCompleted', '');
+
+                // TODO
+                xw.writeElement('missionsProgress', '');
+
+                xw.endElement();
+                resolve(xw.toString());
               });
           } else {
             reject(new Error('Suit does not belong to faction'));
@@ -227,47 +228,30 @@ module.exports = {
           (suit) => suit.ID === suitToPurchase
         );
         if (foundSuit) {
-          //TODO: This could be simplified
           const exIdRegex = new RegExp(`^${Number(exId).toString(16)}`, 'i');
           collection
-            .findOne({
-              'user.TEGid': TEGid,
-              'session.token': { $regex: exIdRegex },
-            })
-            .then((u) => {
-              if (u != null) {
-                if (u.player.Credits >= foundSuit.Cost) {
-                  collection
-                    .updateOne(
-                      {
-                        'user.TEGid': TEGid,
-                        'session.token': { $regex: exIdRegex },
-                      },
-                      { $inc: { 'player.Credits': foundSuit.Cost * -1 } }
-                    )
-                    .then(() => {
-                      //Subtracts the credits from the player
-                      collection
-                        .updateOne(
-                          {
-                            'user.TEGid': TEGid,
-                            'session.token': { $regex: exIdRegex },
-                          },
-                          { $push: { inventory: suitToPurchase } }
-                        )
-                        .then((r) => {
-                          if (r.modifiedCount == 0) {
-                            resolve('<result status="fail"/>');
-                          } else {
-                            resolve('<result status="success"/>');
-                          }
-                        });
-                    });
-                } else {
-                  reject(new Error('Not enough credits'));
-                }
+            .updateOne(
+              {
+                // matching against the user
+                'user.TEGid': TEGid,
+                'session.token': { $regex: exIdRegex },
+
+                // ensuring user has enough credits...
+                'player.Credits': { $gte: Number(foundSuit.Cost) },
+                // ... and does not already have the suit
+                inventory: { $ne: suitToPurchase },
+              },
+              {
+                // both subtract the credits and add the suit
+                $inc: { 'player.Credits': foundSuit.Cost * -1 },
+                $push: { inventory: suitToPurchase },
+              }
+            )
+            .then((r) => {
+              if (r.modifiedCount == 0) {
+                resolve('<result status="fail"/>');
               } else {
-                reject(new Error('User not found'));
+                resolve('<result status="success"/>');
               }
             });
         } else {
