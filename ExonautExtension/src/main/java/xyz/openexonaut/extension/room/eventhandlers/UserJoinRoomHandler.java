@@ -7,16 +7,18 @@ import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.variables.*;
 import com.smartfoxserver.v2.extensions.*;
 
-public class UserJoinRoomHandler extends BaseServerEventHandler {
-    public static final int MIN_PLAYERS = 2;
+import xyz.openexonaut.extension.exolib.data.*;
 
+public class UserJoinRoomHandler extends BaseServerEventHandler {
     @Override
     public void handleServerEvent(ISFSEvent event) {
         User user = (User) event.getParameter(SFSEventParam.USER);
 
         getParentExtension().handleInternalMessage("spawnPlayer", user.getPlayerId());
 
-        if (getParentExtension().getParentRoom().getPlayersList().size() >= MIN_PLAYERS) {
+        if (getParentExtension().getParentRoom().getPlayersList().size()
+                >= ((ExoProps) getParentExtension().handleInternalMessage("getProps", null))
+                        .minPlayers) {
             if (getParentExtension()
                     .getParentRoom()
                     .getVariable("state")

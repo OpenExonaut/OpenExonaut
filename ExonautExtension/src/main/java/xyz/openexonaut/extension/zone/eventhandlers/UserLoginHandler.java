@@ -5,6 +5,8 @@ import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.exceptions.*;
 import com.smartfoxserver.v2.extensions.*;
 
+import xyz.openexonaut.extension.zone.messages.*;
+
 public class UserLoginHandler extends BaseServerEventHandler {
     @Override
     public void handleServerEvent(ISFSEvent event) throws SFSException {
@@ -23,10 +25,10 @@ public class UserLoginHandler extends BaseServerEventHandler {
         } else {
             String displayName =
                     (String)
-                            this.getParentExtension()
+                            getParentExtension()
                                     .handleInternalMessage(
                                             "checkLogin",
-                                            new Object[] {session, username, password});
+                                            new ExoLoginParameters(session, username, password));
             if (displayName == null) {
                 throw new SFSLoginException("User matching provided credentials not found.");
             }

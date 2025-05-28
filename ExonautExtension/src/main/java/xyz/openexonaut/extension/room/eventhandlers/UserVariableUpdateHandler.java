@@ -6,7 +6,7 @@ import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.extensions.*;
 
-import xyz.openexonaut.extension.exolib.*;
+import xyz.openexonaut.extension.exolib.game.*;
 
 public class UserVariableUpdateHandler extends BaseServerEventHandler {
     @Override

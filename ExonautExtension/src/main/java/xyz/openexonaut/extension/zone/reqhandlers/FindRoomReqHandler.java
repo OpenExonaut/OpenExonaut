@@ -10,7 +10,8 @@ import com.smartfoxserver.v2.entities.variables.*;
 import com.smartfoxserver.v2.exceptions.*;
 import com.smartfoxserver.v2.extensions.*;
 
-import xyz.openexonaut.extension.exolib.*;
+import xyz.openexonaut.extension.exolib.data.*;
+import xyz.openexonaut.extension.exolib.game.*;
 
 public class FindRoomReqHandler extends BaseClientRequestHandler {
     @Override
@@ -18,11 +19,17 @@ public class FindRoomReqHandler extends BaseClientRequestHandler {
         CreateRoomSettings roomSettings = new CreateRoomSettings();
         List<RoomVariable> roomVars = new ArrayList<>();
         List<UserVariable> userVars = new ArrayList<>();
-        int mapId = (int) (Math.random() * 9.0 + 1.0);
+        int mapId =
+                (int)
+                                (Math.random()
+                                        * (int)
+                                                getParentExtension()
+                                                        .handleInternalMessage("getMapCount", null))
+                        + 1;
         String mode;
 
         ExoSuit suit =
-                ((ExoSuit[]) this.getParentExtension().handleInternalMessage("getSuits", null))
+                ((ExoSuit[]) getParentExtension().handleInternalMessage("getSuits", null))
                         [sender.getVariable("suitId").getIntValue() - 1];
 
         // nickName is prior set
@@ -51,7 +58,9 @@ public class FindRoomReqHandler extends BaseClientRequestHandler {
         ensureVariable(sender, userVars, "moveState", (int) 0);
         ensureVariable(sender, userVars, "moveDir", (int) 0);
 
-        this.getApi().setUserVariables(sender, userVars);
+        if (userVars.size() > 0) {
+            getApi().setUserVariables(sender, userVars);
+        }
 
         ((ExoPlayer) sender.getProperty("ExoPlayer")).setSuit(suit);
 
@@ -84,8 +93,7 @@ public class FindRoomReqHandler extends BaseClientRequestHandler {
         roomSettings.setRoomVariables(roomVars);
 
         try {
-            this.getApi()
-                    .quickJoinOrCreateRoom(
+            getApi().quickJoinOrCreateRoom(
                             sender,
                             new MatchExpression("mode", StringMatch.EQUALS, mode)
                                     .and("state", StringMatch.NOT_EQUALS, "play"),
@@ -106,7 +114,6 @@ public class FindRoomReqHandler extends BaseClientRequestHandler {
             User user, List<UserVariable> variables, String id, Object defaultValue) {
         if (!user.containsVariable(id)) {
             variables.add(new SFSUserVariable(id, defaultValue));
-            System.out.println("Added " + id + " = " + defaultValue);
         }
     }
 }

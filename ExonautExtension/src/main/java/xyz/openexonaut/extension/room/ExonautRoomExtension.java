@@ -16,15 +16,18 @@ import com.smartfoxserver.v2.entities.data.*;
 import com.smartfoxserver.v2.entities.variables.*;
 import com.smartfoxserver.v2.extensions.*;
 
-import xyz.openexonaut.extension.exolib.*;
-import xyz.openexonaut.extension.exolib.reqhandlers.*;
+import xyz.openexonaut.extension.exolib.data.*;
+import xyz.openexonaut.extension.exolib.game.*;
+import xyz.openexonaut.extension.exolib.map.*;
+import xyz.openexonaut.extension.exolib.messages.*;
 import xyz.openexonaut.extension.room.eventhandlers.*;
+import xyz.openexonaut.extension.room.reqhandlers.*;
 
 public class ExonautRoomExtension extends SFSExtension {
     private ExoWorld world = null;
 
-    // private ExoSuit[] suits = null;
     private ExoWeapon[] weapons = null;
+    private ExoProps exoProps = null;
 
     private final AtomicInteger nextBulletId = new AtomicInteger(1);
     private final AtomicInteger nextGrenadeId = new AtomicInteger(1);
@@ -40,26 +43,26 @@ public class ExonautRoomExtension extends SFSExtension {
 
     @Override
     public void init() {
-        room = this.getParentRoom();
+        room = getParentRoom();
+        exoProps =
+                (ExoProps) getParentZone().getExtension().handleInternalMessage("getProps", null);
+
         world =
                 new ExoWorld(
                         (ExoMap)
-                                this.getParentZone()
+                                getParentZone()
                                         .getExtension()
                                         .handleInternalMessage(
                                                 "getMap", room.getVariable("mapId").getIntValue()),
-                        room);
-        /*
-        suits =
-                (ExoSuit[])
-                        this.getParentZone().getExtension().handleInternalMessage("getSuits", null);
-        */
+                        room,
+                        exoProps);
         weapons =
                 (ExoWeapon[])
-                        this.getParentZone()
-                                .getExtension()
-                                .handleInternalMessage("getWeapons", null);
-        timeLimit = (room.getVariable("mode").getStringValue().equals("team")) ? 900 : 600;
+                        getParentZone().getExtension().handleInternalMessage("getWeapons", null);
+        timeLimit =
+                room.getVariable("mode").getStringValue().equals("team")
+                        ? exoProps.teamTime
+                        : exoProps.soloTime;
 
         addEventHandler(SFSEventType.USER_JOIN_ROOM, UserJoinRoomHandler.class);
         addEventHandler(SFSEventType.USER_VARIABLES_UPDATE, UserVariableUpdateHandler.class);
@@ -83,6 +86,9 @@ public class ExonautRoomExtension extends SFSExtension {
             peek = null;
             frame.dispose();
         }
+        if (world != null) {
+            world.destroy();
+        }
         super.destroy();
     }
 
@@ -103,55 +109,102 @@ public class ExonautRoomExtension extends SFSExtension {
             if (user != null) {
                 int id = user.getPlayerId() - 1;
                 int hacks = ((ExoPlayer) user.getProperty("ExoPlayer")).getHacks();
-                award[id] = 5; // participation
-                award[id] += hacks * 5; // hacks
+                award[id] = exoProps.creditsParticipation; // participation
+                award[id] += hacks * exoProps.creditsPerHack; // hacks
                 if (hacks == mostHacks) {
                     award[id] +=
-                            10; // winning. for team matches, this is applied to everyone on the
+                            exoProps.creditsWin; // winning. for team matches, this is applied to
+                    // everyone on the
                     // winning team (team with most hacks)
                 }
             }
         }
     }
 
+    private AtomicInteger getNextBulletId() {
+        return nextBulletId;
+    }
+
+    private AtomicInteger getNextGrenadeId() {
+        return nextGrenadeId;
+    }
+
+    private int getTimeLimit() {
+        return timeLimit;
+    }
+
+    private ExoWeapon getWeapon(int weaponId) {
+        return weapons[weaponId - 1];
+    }
+
+    private ExoItem[] getItems() {
+        return world.items;
+    }
+
+    private boolean spawnBullet(ExoBullet bullet) {
+        return world.spawnBullet(bullet);
+    }
+
+    private Object spawnPlayer(int id) {
+        world.spawnPlayer(id);
+        return null;
+    }
+
+    private Object startCountdown() {
+        // client state update targets 8 Hz. i think that's too infrequent, so let's
+        // start at 20 Hz and go from there
+        gameHandle =
+                sfsApi.getSystemScheduler()
+                        .scheduleAtFixedRate(new ExoTimer(), 0, 50, TimeUnit.MILLISECONDS);
+        return null;
+    }
+
+    private Object handleSnipe(ExoBullet bullet) {
+        world.handleSnipe(bullet);
+        return null;
+    }
+
+    private Object setVariables(ExoVariableUpdate update) {
+        sfsApi.setUserVariables(update.user, update.variableList);
+        return null;
+    }
+
+    private Object traceIt(ExoTraceArgs traceArgs) {
+        trace(traceArgs.level, traceArgs.args);
+        return null;
+    }
+
+    private ExoProps getProps() {
+        return exoProps;
+    }
+
     @Override
     public Object handleInternalMessage(String command, Object parameters) {
         switch (command) {
             case "getNextBulletId":
-                return nextBulletId;
+                return getNextBulletId();
             case "getNextGrenadeId":
-                return nextGrenadeId;
+                return getNextGrenadeId();
             case "getTimeLimit":
-                return timeLimit;
+                return getTimeLimit();
             case "getWeapon":
-                return weapons[(Integer) parameters - 1];
+                return getWeapon((Integer) parameters);
             case "getItems":
-                return world.items;
+                return getItems();
             case "spawnBullet":
-                return world.spawnBullet((ExoBullet) parameters);
+                return spawnBullet((ExoBullet) parameters);
             case "spawnPlayer":
-                world.spawnPlayer((Integer) parameters);
-                return null;
+                return spawnPlayer((Integer) parameters);
             case "startCountdown":
-                // client state update targets 8 Hz. i think that's too infrequent, so let's
-                // start at 20 Hz and go from there
-                gameHandle =
-                        sfsApi.getSystemScheduler()
-                                .scheduleAtFixedRate(new ExoTimer(), 0, 50, TimeUnit.MILLISECONDS);
-                return null;
+                return startCountdown();
             case "handleSnipe":
-                world.handleSnipe((ExoBullet) parameters);
-                return null;
-            case "setVariable":
-                Object[] params = (Object[]) parameters;
-                ExoPlayer player = (ExoPlayer) params[0];
-                String variable = (String) params[1];
-                Object value = params[2];
-
-                List<UserVariable> varUpdate = new ArrayList<>();
-                varUpdate.add(new SFSUserVariable(variable, value));
-                sfsApi.setUserVariables(player.user, varUpdate);
-                return null;
+                return handleSnipe((ExoBullet) parameters);
+            case "setVariables":
+                return setVariables((ExoVariableUpdate) parameters);
+            case "trace":
+                return traceIt((ExoTraceArgs) parameters);
+            case "getProps":
+                return getProps();
             default:
                 trace(ExtensionLogLevel.ERROR, "Invalid internal message " + command);
                 return null;
@@ -163,12 +216,12 @@ public class ExonautRoomExtension extends SFSExtension {
         private Container canvas = frame.getContentPane();
 
         public ExoPeek() {
-            this.setPreferredSize(new Dimension((int) world.map.size.x, (int) world.map.size.y));
+            setPreferredSize(new Dimension((int) world.map.size.x, (int) world.map.size.y));
             canvas.add(this);
             frame.pack();
             frame.setResizable(false);
             frame.setVisible(true);
-            this.repaint();
+            repaint();
         }
 
         @Override
@@ -179,12 +232,12 @@ public class ExonautRoomExtension extends SFSExtension {
 
         @Override
         public void run() {
-            this.repaint();
+            repaint();
         }
     }
 
     private class ExoTimer implements Runnable {
-        private float queueTime = 10;
+        private float queueTime = exoProps.queueWait;
         private float gameTime = 0;
         private long lastNano = System.nanoTime();
 

@@ -10,29 +10,33 @@ import com.mongodb.client.*;
 import com.mongodb.client.model.*;
 import org.bson.*;
 
-import com.smartfoxserver.bitswarm.sessions.*;
 import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.extensions.*;
 
-import xyz.openexonaut.extension.exolib.*;
+import xyz.openexonaut.extension.exolib.data.*;
 import xyz.openexonaut.extension.exolib.geo.*;
+import xyz.openexonaut.extension.exolib.map.*;
 import xyz.openexonaut.extension.zone.eventhandlers.*;
+import xyz.openexonaut.extension.zone.loader.*;
+import xyz.openexonaut.extension.zone.messages.*;
 import xyz.openexonaut.extension.zone.reqhandlers.*;
 
 public class ExonautZoneExtension extends SFSExtension {
     private Properties props = null;
     private JsonNode gameData = null;
-    private MapLoader[] mapLoaders = new MapLoader[9];
     private MongoClient mongoClient = null;
     private MongoDatabase database = null;
     private MongoCollection<Document> userCollection = null;
 
-    private ExoMap[] maps = new ExoMap[9];
+    private int mapCount = 0;
+    private ExoMap[] maps = null;
     private ExoWeapon[] weapons = null;
     private ExoSuit[] suits = null;
 
     private boolean debugGFX = false;
     private float debugGFXScale = 1f;
+
+    private ExoProps exoProps = null;
 
     @Override
     public void init() {
@@ -41,6 +45,7 @@ public class ExonautZoneExtension extends SFSExtension {
             throw new RuntimeException(
                     "HTTP server URI not set. Please create config.properties in the extension folder and define it.");
         }
+        exoProps = new ExoProps(props);
 
         try {
             gameData =
@@ -59,9 +64,11 @@ public class ExonautZoneExtension extends SFSExtension {
 
         debugGFX = Boolean.parseBoolean(props.getProperty("debugGFX"));
         debugGFXScale = Float.parseFloat(props.getProperty("debugGFXScale"));
+        mapCount = Integer.parseInt(props.getProperty("mapCount"));
 
-        for (int i = 0; i < 9; i++) {
-            mapLoaders[i] =
+        maps = new ExoMap[mapCount];
+        for (int i = 0; i < mapCount; i++) {
+            MapLoader mapLoader =
                     new MapLoader(
                             getCurrentFolder()
                                     + "worlds/world_"
@@ -69,16 +76,16 @@ public class ExonautZoneExtension extends SFSExtension {
             // the tutorial is always run locally
 
             if (debugGFX) {
-                ExoInt2DVector scaledDrawTranslate = mapLoaders[i].getDrawTranslate(debugGFXScale);
-                ExoInt2DVector scaledDrawSize = mapLoaders[i].getDrawSize(debugGFXScale);
+                ExoInt2DVector scaledDrawTranslate = mapLoader.getDrawTranslate(debugGFXScale);
+                ExoInt2DVector scaledDrawSize = mapLoader.getDrawSize(debugGFXScale);
                 maps[i] =
                         new ExoMap(
-                                mapLoaders[i].getWallFixtures(),
-                                mapLoaders[i].getTeamPlayerSpawns(),
-                                mapLoaders[i].getFFAPlayerSpawns(),
-                                mapLoaders[i].getTeamItemSpawns(),
-                                mapLoaders[i].getFFAItemSpawns(),
-                                mapLoaders[i].getImage(
+                                mapLoader.getWallFixtureDefs(),
+                                mapLoader.getTeamPlayerSpawns(),
+                                mapLoader.getFFAPlayerSpawns(),
+                                mapLoader.getTeamItemSpawns(),
+                                mapLoader.getFFAItemSpawns(),
+                                mapLoader.getImage(
                                         debugGFXScale, scaledDrawTranslate, scaledDrawSize),
                                 scaledDrawTranslate,
                                 scaledDrawSize,
@@ -86,11 +93,11 @@ public class ExonautZoneExtension extends SFSExtension {
             } else {
                 maps[i] =
                         new ExoMap(
-                                mapLoaders[i].getWallFixtures(),
-                                mapLoaders[i].getTeamPlayerSpawns(),
-                                mapLoaders[i].getFFAPlayerSpawns(),
-                                mapLoaders[i].getTeamItemSpawns(),
-                                mapLoaders[i].getFFAItemSpawns(),
+                                mapLoader.getWallFixtureDefs(),
+                                mapLoader.getTeamPlayerSpawns(),
+                                mapLoader.getFFAPlayerSpawns(),
+                                mapLoader.getTeamItemSpawns(),
+                                mapLoader.getFFAItemSpawns(),
                                 null,
                                 null,
                                 null,
@@ -124,56 +131,82 @@ public class ExonautZoneExtension extends SFSExtension {
         trace(ExtensionLogLevel.INFO, "Exonaut Zone Extension init finished");
     }
 
-    private JsonNode getFullUserObject(String tegid) {
-        Document userJSON = userCollection.find(Filters.eq("user.TEGid", tegid)).first();
-        if (userJSON != null) {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode data = null;
-            try {
-                data = mapper.readTree(userJSON.toJson());
-                return data;
-            } catch (IOException e) {
-                trace(ExtensionLogLevel.ERROR, e);
+    @Override
+    public void destroy() {
+        for (ExoMap map : maps) {
+            if (map != null) {
+                map.destroy();
             }
         }
-        return null;
+
+        mongoClient.close();
+
+        super.destroy();
+    }
+
+    private Document getFullUserObject(String tegid) {
+        return userCollection.find(Filters.eq("user.TEGid", tegid)).first();
+    }
+
+    private ExoMap getMap(int mapId) {
+        return maps[mapId - 1];
+    }
+
+    private ExoSuit[] getSuits() {
+        return suits;
+    }
+
+    private ExoWeapon[] getWeapons() {
+        return weapons;
     }
 
     // returns: dname if valid non-guest login, null otherwise; input password is encrypted by SFS2X
-    private String checkLogin(Session session, String username, String password) {
-        JsonNode userObject = getFullUserObject(username);
+    private String checkLogin(ExoLoginParameters loginArgs) {
+        Document userObject = getFullUserObject(loginArgs.username);
         if (userObject != null) {
             if (getApi().checkSecurePassword(
-                            session, userObject.get("user").get("authid").asText(), password)) {
-                return userObject.get("user").get("dname").asText();
+                            loginArgs.session,
+                            userObject.get("user", Document.class).getString("authid"),
+                            loginArgs.password)) {
+                return userObject.get("user", Document.class).getString("dname");
             }
         }
         return null;
     }
 
-    private JsonNode getPlayerObject(String tegid) {
-        JsonNode userObject = getFullUserObject(tegid);
+    private Document getPlayerObject(String tegid) {
+        Document userObject = getFullUserObject(tegid);
         if (userObject != null) {
-            return userObject.get("player");
+            return userObject.get("player", Document.class);
         }
         return null;
+    }
+
+    private ExoProps getProps() {
+        return exoProps;
+    }
+
+    private int getMapCount() {
+        return mapCount;
     }
 
     @Override
     public Object handleInternalMessage(String command, Object parameters) {
         switch (command) {
             case "getMap":
-                return maps[(Integer) parameters - 1];
+                return getMap((Integer) parameters);
             case "getSuits":
-                return suits;
+                return getSuits();
             case "getWeapons":
-                return weapons;
+                return getWeapons();
             case "checkLogin":
-                Object[] loginArgs = (Object[]) parameters;
-                return checkLogin(
-                        (Session) loginArgs[0], (String) loginArgs[1], (String) loginArgs[2]);
+                return checkLogin((ExoLoginParameters) parameters);
             case "getPlayerObject":
                 return getPlayerObject((String) parameters);
+            case "getProps":
+                return getProps();
+            case "getMapCount":
+                return getMapCount();
             default:
                 trace(ExtensionLogLevel.ERROR, "Invalid internal message " + command);
                 return null;

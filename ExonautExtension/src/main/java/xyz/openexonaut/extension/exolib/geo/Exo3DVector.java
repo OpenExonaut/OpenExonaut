@@ -18,7 +18,7 @@ public class Exo3DVector {
             String fatherRotation,
             Exo3DVector fatherScale,
             Exo3DVector fatherPosition) {
-        return this.applyScaleRotatePosition(selfScale, selfPosition, selfRotation)
+        return applyScaleRotatePosition(selfScale, selfPosition, selfRotation)
                 .applyScaleRotatePosition(fatherScale, fatherPosition, fatherRotation);
     }
 
@@ -29,19 +29,19 @@ public class Exo3DVector {
         float newZ = 0f;
         switch (rotation) {
             case "0":
-                newX = this.x * scale.x;
-                newY = this.y * scale.y;
-                newZ = this.z * scale.z;
+                newX = x * scale.x;
+                newY = y * scale.y;
+                newZ = z * scale.z;
                 break;
             case "-x":
-                newX = this.x * scale.x;
-                newY = this.z * scale.z;
-                newZ = -this.y * scale.y;
+                newX = x * scale.x;
+                newY = z * scale.z;
+                newZ = -y * scale.y;
                 break;
             case "z":
-                newX = this.y * scale.y;
-                newY = -this.x * scale.x;
-                newZ = this.z * scale.z;
+                newX = y * scale.y;
+                newY = -x * scale.x;
+                newZ = z * scale.z;
                 break;
             default:
                 System.err.println("Unknown rotation " + rotation + "!");

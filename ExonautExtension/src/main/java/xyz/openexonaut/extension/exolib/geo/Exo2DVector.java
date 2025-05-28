@@ -17,14 +17,14 @@ public class Exo2DVector {
     public boolean equals(Object o) {
         if (o instanceof Exo2DVector) {
             Exo2DVector other = (Exo2DVector) o;
-            return this.x == other.x && this.y == other.y;
+            return x == other.x && y == other.y;
         }
         return false;
     }
 
     @Override
     public int hashCode() {
-        return Float.floatToIntBits(x) ^ Float.floatToIntBits(y);
+        return Float.floatToIntBits(x) ^ Integer.rotateRight(Float.floatToIntBits(y), 16);
     }
 
     @Override
