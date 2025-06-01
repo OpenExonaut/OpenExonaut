@@ -112,10 +112,7 @@ public class ExonautRoomExtension extends SFSExtension {
                 award[id] = exoProps.creditsParticipation; // participation
                 award[id] += hacks * exoProps.creditsPerHack; // hacks
                 if (hacks == mostHacks) {
-                    award[id] +=
-                            exoProps.creditsWin; // winning. for team matches, this is applied to
-                    // everyone on the
-                    // winning team (team with most hacks)
+                    award[id] += exoProps.creditsWin; // winning
                 }
             }
         }

@@ -68,12 +68,8 @@ public class ExonautZoneExtension extends SFSExtension {
 
         maps = new ExoMap[mapCount];
         for (int i = 0; i < mapCount; i++) {
-            MapLoader mapLoader =
-                    new MapLoader(
-                            getCurrentFolder()
-                                    + "worlds/world_"
-                                    + (i + 1)); // world 0 exists, but is the tutorial world, and
-            // the tutorial is always run locally
+            // world 0 exists, but is the tutorial world, and the tutorial is always run locally
+            MapLoader mapLoader = new MapLoader(getCurrentFolder() + "worlds/world_" + (i + 1));
 
             if (debugGFX) {
                 ExoInt2DVector scaledDrawTranslate = mapLoader.getDrawTranslate(debugGFXScale);

@@ -1,20 +1,68 @@
+# Database MongoDB URI.
+# String
 mongoURI=mongodb://admin:password@127.0.0.1:27017
+
+# ExonautServer HTTP URI.
+# String
 httpURI=http://127.0.0.1:80
+
+# Whether to enable the room graphical debug. Saves resources to disable.
+# Boolean
 debugGFX=true
+
+# Scale the room graphical debug window and graphics by this factor.
+# Irrelevant if debugGFX is false.
+# Float
 debugGFXScale=1
+
+# Number of non-tutorial maps.
+# When making custom map definitions, set the first multiplayer map to world_1,
+# then set the rest of the multiplayer maps to be contiguous world_n thereafter.
+# Integer, 9 in vanilla.
 mapCount=9
 
+# The percentages to add (headshot, damage boosts) or subtract (armor boosts) from
+# damage taken. Damage boost is applied upon projectile spawn, and headshot and armor
+# boost is applied upon damage receipt.
+# Float
+! Is this right? description of Brad's Princess Bubblegum video:
+! "Her Marksman fires 1 high-damage shot so if you critical hit light exosuits you can
+! hack them in one shot."
+! Her marksman does 100 damage, lights have ca. 125 armor, mediums have ca. 150; puts
+! it between 1.25 and 1.5.
 headshotMod=0.25
+! This value (0.2 multiplier) was taken from essentially dead client code. Is this right?
 boostDamageMod=0.2
 boostTeamDamageMod=0.2
 boostArmorMod=0.2
 boostTeamArmorMod=0.2
 
+# How many seconds to run a free-for-all match for.
+# Integer, 600 in vanilla
 soloTime=600
+
+# How many seconds to run a team match for.
+# Integer, 900 in vanilla
 teamTime=900
+
+# How many seconds to wait between meeting minimum player count and spawning players.
+# Integer, 20 in vanilla
 queueWait=10
+
+# How many players needed to initiate the queueWait timer.
+# Integer
 minPlayers=2
 
+# How many credits and XP to award any player present at the end.
+# Integer, 5 in vanilla
 creditsParticipation=5
+
+# How many credits and XP to award a player for each hack.
+# Integer, 5 in vanilla
 creditsPerHack=5
+
+# How many credits and XP to award a player for winning a match.
+# Solo: Most hacks.
+# Team: Being on the team with the most hacks.
+# Integer, 10 in vanilla
 creditsWin=10

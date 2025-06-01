@@ -35,6 +35,6 @@ public class UserLoginHandler extends BaseServerEventHandler {
             session.setProperty("dname", displayName);
             session.setProperty("tegid", username);
         }
-        // successful return marks successful pass of authentication stage of login
+        // return without exception marks successful pass of authentication stage of login
     }
 }

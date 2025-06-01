@@ -34,8 +34,7 @@ public enum ExoEvtEnum {
     EVT_SEND_CAPTURED(20, ErrorReceipt::handle),
     EVT_SEND_PICKUP_COMPLETE(22, ErrorReceipt::handle),
     EVT_SEND_START_GAME(
-            101, ErrorReceipt::handle), // not needed: minor GUI string only which is also set by
-    // EVT_TIME_UPDATE
+            101, ErrorReceipt::handle), // not needed: minor GUI string also set by EVT_TIME_UPDATE
 
     // "server-sent" ids which just log
     EVT_SEND_BEEP(50, ErrorReceipt::handle),
