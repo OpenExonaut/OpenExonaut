@@ -218,21 +218,12 @@ public class ExoPlayer {
 
         float damageModifier = 1f;
         if (headshot) {
-            // is this right? description of Brad's Princess Bubblegum video:
-            // "Her Marksman fires 1 high-damage shot so if you critical hit light exosuits you can
-            // hack them in one shot."
-            // her marksman does 100 damage, lights have ca. 125 armor, mediums have ca. 150; puts
-            // it between 1.25 and 1.5
             damageModifier += exoProps.headshotMod;
         }
         if (getBoost() == ExoPickupEnum.boost_armor.id) {
-            // this value (0.2 multiplier) was taken from essentially dead client code. is this
-            // right?
             damageModifier -= exoProps.boostArmorMod;
         }
         if (getTeamBoost() == ExoPickupEnum.boost_team_armor.id) {
-            // this value (0.2 multiplier) was taken from essentially dead client code. is this
-            // right?
             damageModifier -= exoProps.boostTeamArmorMod;
         }
 
