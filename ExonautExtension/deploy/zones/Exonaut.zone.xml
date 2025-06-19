@@ -8,8 +8,8 @@
   <isFilterBuddyMessages>true</isFilterBuddyMessages>
   <isEncrypted>false</isEncrypted>
   <maxUsers>1000</maxUsers>
-  <maxUserVariablesAllowed>50</maxUserVariablesAllowed>
-  <maxRoomVariablesAllowed>50</maxRoomVariablesAllowed>
+  <maxUserVariablesAllowed>30</maxUserVariablesAllowed>
+  <maxRoomVariablesAllowed>10</maxRoomVariablesAllowed>
   <minRoomNameChars>3</minRoomNameChars>
   <maxRoomNameChars>20</maxRoomNameChars>
   <maxRooms>500</maxRooms>

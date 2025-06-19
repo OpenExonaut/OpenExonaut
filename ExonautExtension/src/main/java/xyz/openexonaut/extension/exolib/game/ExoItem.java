@@ -2,12 +2,14 @@ package xyz.openexonaut.extension.exolib.game;
 
 import java.awt.*;
 
+import com.smartfoxserver.v2.entities.data.*;
+
 import xyz.openexonaut.extension.exolib.map.*;
 
-public class ExoItem {
+public class ExoItem extends ExoTickable {
     public final ExoItemSpawner spawner;
+
     private float timeToRespawn = 0f;
-    private long lastNano = System.nanoTime();
 
     public ExoItem(ExoItemSpawner spawner) {
         this.spawner = spawner;
@@ -17,19 +19,18 @@ public class ExoItem {
         return timeToRespawn;
     }
 
-    public void grabbed() {
-        tick(); // clock starts now, not when the last tick happened
+    public void grabbed(ISFSArray eventQueue) {
+        tick(eventQueue); // clock starts now, not when the last tick happened
         timeToRespawn = spawner.respawnTime;
     }
 
-    public void tick() {
-        long nano = System.nanoTime();
-        float deltaTime = (nano - lastNano) / 1_000_000_000f;
-        lastNano = nano;
+    @Override
+    public float tick(ISFSArray eventQueue) {
+        float deltaTime = super.tick(eventQueue);
 
-        if (timeToRespawn > 0f) {
-            timeToRespawn = Math.max(timeToRespawn - deltaTime, 0f);
-        }
+        timeToRespawn = Math.max(timeToRespawn - deltaTime, 0f);
+
+        return deltaTime;
     }
 
     public boolean active() {

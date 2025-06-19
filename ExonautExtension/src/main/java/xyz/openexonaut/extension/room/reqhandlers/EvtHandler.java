@@ -10,31 +10,13 @@ import xyz.openexonaut.extension.exolib.game.*;
 public class EvtHandler extends BaseClientRequestHandler {
     @Override
     public void handleClientRequest(User sender, ISFSObject params) {
-        trace(ExtensionLogLevel.DEBUG, "room evt from " + sender.toString());
-        ExoPlayer player = (ExoPlayer) sender.getProperty("ExoPlayer");
-        if (player == null) {
-            trace(
-                    ExtensionLogLevel.WARN,
-                    "null player for user " + sender.getId() + " \"" + sender.getName() + "\"");
-        }
+        trace(
+                ExtensionLogLevel.DEBUG,
+                String.format("room evt from %s (id %d)", sender.getName(), sender.getId()));
 
-        if (params.containsKey("msgType")) {
-            ExoEvtEnum eventType = ExoEvtEnum.getFromCode(params.getInt("msgType"));
-            if (eventType == null) {
-                trace(
-                        ExtensionLogLevel.WARN,
-                        "unknown event "
-                                + params.getInt("msgType")
-                                + " from playerId "
-                                + params.getInt("playerId")
-                                + ", sender "
-                                + player.user.getName()
-                                + " (id "
-                                + player.user.getId()
-                                + ")");
-            } else {
-                eventType.handle(getParentExtension().getParentRoom(), player, params);
-            }
-        }
+        ExoEvtEnum.handleEvtReq(
+                getParentExtension().getParentRoom(),
+                (ExoPlayer) sender.getProperty("ExoPlayer"),
+                params);
     }
 }

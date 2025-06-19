@@ -7,7 +7,7 @@ import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
 
-public class ExoBullet {
+public class ExoBullet extends ExoTickable {
     public final int num;
     public final float range;
     public final float velocity;
@@ -18,9 +18,9 @@ public class ExoBullet {
     public final int weaponId;
     public final boolean boosted;
 
-    public float x;
-    public float y;
-    public float dist;
+    private float x;
+    private float y;
+    private float dist;
 
     // actual bullet
     public ExoBullet(
@@ -77,6 +77,30 @@ public class ExoBullet {
 
         this.boosted = damageModifier > 1f;
         this.damage = damage * damageModifier;
+    }
+
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public float getDist() {
+        return dist;
+    }
+
+    public void addX(float x) {
+        this.x += x;
+    }
+
+    public void addY(float y) {
+        this.y += y;
+    }
+
+    public void addDist(float dist) {
+        this.dist += dist;
     }
 
     public void draw(Graphics g, ExoMap map) {

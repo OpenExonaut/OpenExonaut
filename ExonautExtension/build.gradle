@@ -107,6 +107,7 @@ tasks.register('deployAllJars') {
 
 tasks.withType(JavaCompile) {
     options.release = 11
+    options.compilerArgs << '-parameters'
 }
 
 task libJar(type: Jar) {

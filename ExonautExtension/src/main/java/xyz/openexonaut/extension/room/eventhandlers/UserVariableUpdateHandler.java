@@ -12,16 +12,13 @@ public class UserVariableUpdateHandler extends BaseServerEventHandler {
     @Override
     public void handleServerEvent(ISFSEvent event) {
         User user = (User) event.getParameter(SFSEventParam.USER);
-        ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
+        @SuppressWarnings("rawtypes") // SFS2X gives a raw list
+        List changedVariables = (List) event.getParameter(SFSEventParam.VARIABLES);
 
-        if (player != null) {
-            @SuppressWarnings("rawtypes")
-            List changedVariables = (List) event.getParameter(SFSEventParam.VARIABLES);
-            player.updateVariables(changedVariables, getApi());
-        } else {
-            trace(
-                    ExtensionLogLevel.WARN,
-                    "null player for user " + user.getId() + " \"" + user.getName() + "\"");
-        }
+        trace(
+                ExtensionLogLevel.DEBUG,
+                String.format("variable update from %s (id %d)", user.getName(), user.getId()));
+
+        ((ExoPlayer) (user).getProperty("ExoPlayer")).updateVariables(changedVariables);
     }
 }

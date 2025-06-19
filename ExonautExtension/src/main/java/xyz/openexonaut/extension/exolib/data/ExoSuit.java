@@ -2,6 +2,8 @@ package xyz.openexonaut.extension.exolib.data;
 
 import com.fasterxml.jackson.databind.*;
 
+import xyz.openexonaut.extension.exolib.resources.*;
+
 public class ExoSuit {
     public final String Name;
     public final ExoMod WeaponMod;
@@ -12,9 +14,9 @@ public class ExoSuit {
     public final float Timer_Sp_Weps;
     public final float CoolDown_Sp_Weps;
 
-    public ExoSuit(JsonNode node, ExoMod[] allMods) {
+    public ExoSuit(JsonNode node, ExoGameData gameData) {
         this.Name = node.get("Name").asText();
-        this.WeaponMod = allMods[node.get("WeaponMod").asInt() - 1];
+        this.WeaponMod = gameData.getMod(node.get("WeaponMod").asInt());
         this.Health = (float) node.get("Health").asDouble();
         this.Regen_Speed = (float) node.get("Regen_Speed").asDouble();
         this.Regen_Delay = (float) node.get("Regen_Delay").asDouble();

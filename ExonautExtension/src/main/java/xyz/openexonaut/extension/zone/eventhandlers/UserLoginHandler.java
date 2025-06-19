@@ -5,35 +5,18 @@ import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.exceptions.*;
 import com.smartfoxserver.v2.extensions.*;
 
-import xyz.openexonaut.extension.zone.messages.*;
+import xyz.openexonaut.extension.exolib.utils.*;
 
 public class UserLoginHandler extends BaseServerEventHandler {
     @Override
     public void handleServerEvent(ISFSEvent event) throws SFSException {
+        Session session = (Session) event.getParameter(SFSEventParam.SESSION);
         String username = (String) event.getParameter(SFSEventParam.LOGIN_NAME);
         String password = (String) event.getParameter(SFSEventParam.LOGIN_PASSWORD);
-        Session session = (Session) event.getParameter(SFSEventParam.SESSION);
 
-        if (username.equals("")) {
-            if (!password.equals("")) {
-                trace(
-                        ExtensionLogLevel.WARN,
-                        "Unexpected: empty username (guest login) with non-empty password.");
-            }
-            session.setProperty("dname", "");
-            session.setProperty("tegid", "");
-        } else {
-            String displayName =
-                    (String)
-                            getParentExtension()
-                                    .handleInternalMessage(
-                                            "checkLogin",
-                                            new ExoLoginParameters(session, username, password));
-            if (displayName == null) {
-                throw new SFSLoginException("User matching provided credentials not found.");
-            }
-            session.setProperty("dname", displayName);
-            session.setProperty("tegid", username);
+        if (!ExoEntryUtils.login(
+                session, username, password, getParentExtension().getParentZone())) {
+            throw new SFSLoginException("User matching provided credentials not found.");
         }
         // return without exception marks successful pass of authentication stage of login
     }

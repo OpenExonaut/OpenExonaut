@@ -9,12 +9,16 @@ import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.physics.box2d.*;
 
 import com.smartfoxserver.v2.entities.*;
+import com.smartfoxserver.v2.entities.data.*;
 
 import xyz.openexonaut.extension.exolib.data.*;
 import xyz.openexonaut.extension.exolib.map.*;
+import xyz.openexonaut.extension.exolib.utils.*;
 
-public class ExoWorld {
+public class ExoWorld extends ExoTickable {
     public final ExoMap map;
+    public final ExoItem[] items;
+
     private final Room room;
     private final ExoProps exoProps;
 
@@ -24,28 +28,26 @@ public class ExoWorld {
     private final FixtureDef playerBodyDef = new FixtureDef();
     private final FixtureDef playerFeetDef = new FixtureDef();
 
-    private final BodyDef wallDef = new BodyDef();
     private final BodyDef playerDef = new BodyDef();
-
-    private final Body walls;
-
-    public final ExoItem[] items;
-
-    private long lastNano = System.nanoTime();
 
     // this "efficiently" handles concurrency automagically; the copy-on-write arraylist is probably
     // slower given the volatility
     private final Set<ExoBullet> activeBullets = ConcurrentHashMap.newKeySet();
+
+    static {
+        Box2D.init();
+    }
 
     public ExoWorld(ExoMap map, Room room, ExoProps exoProps) {
         this.map = map;
         this.room = room;
         this.exoProps = exoProps;
 
+        BodyDef wallDef = new BodyDef();
         wallDef.awake = false;
         playerDef.fixedRotation = true;
 
-        walls = world.createBody(wallDef);
+        Body walls = world.createBody(wallDef);
         for (FixtureDef wall : map.wallFixtureDefs) {
             walls.createFixture(wall).setUserData(new ExoUserData(0, 0));
         }
@@ -107,10 +109,12 @@ public class ExoWorld {
     public void spawnPlayer(int id) {
         ExoPlayer player = (ExoPlayer) room.getPlayersList().get(id - 1).getProperty("ExoPlayer");
         playerDef.position.set(player.getX(), player.getY());
-        player.body = world.createBody(playerDef);
-        player.body.createFixture(playerHeadDef).setUserData(new ExoUserData(id, 1));
-        player.body.createFixture(playerBodyDef).setUserData(new ExoUserData(id, 2));
-        player.body.createFixture(playerFeetDef).setUserData(new ExoUserData(id, 3));
+
+        Body newPlayerBody = world.createBody(playerDef);
+        newPlayerBody.createFixture(playerHeadDef).setUserData(new ExoUserData(id, 1));
+        newPlayerBody.createFixture(playerBodyDef).setUserData(new ExoUserData(id, 2));
+        newPlayerBody.createFixture(playerFeetDef).setUserData(new ExoUserData(id, 3));
+        player.setBody(newPlayerBody);
     }
 
     public boolean spawnBullet(ExoBullet bullet) {
@@ -118,22 +122,20 @@ public class ExoWorld {
     }
 
     public void handleSnipe(ExoBullet bullet) {
-        Vector2 delta =
-                new Vector2(
-                        bullet.velocityXComponent - bullet.x, bullet.velocityYComponent - bullet.y);
+        float x = bullet.getX();
+        float y = bullet.getY();
+
+        Vector2 delta = new Vector2(bullet.velocityXComponent - x, bullet.velocityYComponent - y);
         delta.setLength(1000f);
 
         ExoUserData raycastData =
-                bulletRaycast(
-                        bullet.x,
-                        bullet.y,
-                        bullet.x + delta.x,
-                        bullet.y + delta.y,
-                        bullet.player.user.getPlayerId());
+                bulletRaycast(x, y, x + delta.x, y + delta.y, bullet.player.user.getPlayerId());
         if (raycastData != null) {
             if (raycastData.id != 0) {
+                ISFSArray eventArray = new SFSArray();
                 ((ExoPlayer) room.getPlayersList().get(raycastData.id - 1).getProperty("ExoPlayer"))
-                        .hit(bullet, raycastData.part, room, exoProps);
+                        .hit(bullet, raycastData.part, exoProps, eventArray);
+                ExoSendUtils.sendEventArrayToAll(room, eventArray);
             }
         }
     }
@@ -162,41 +164,36 @@ public class ExoWorld {
         g.translate(-(int) map.translate.x, -(int) map.translate.y);
     }
 
-    public void tick() {
-        long nano = System.nanoTime();
-        float deltaTime = (nano - lastNano) / 1_000_000_000f;
-        lastNano = nano;
+    @Override
+    public float tick(ISFSArray eventQueue) {
+        float deltaTime = super.tick(eventQueue);
 
         for (User user : room.getPlayersList()) {
             if (user != null) {
                 ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
-                player.tick(room);
+                player.tick(eventQueue);
+                player.getBody().setTransform(new Vector2(player.getX(), player.getY()), 0f);
             }
         }
 
         for (ExoItem item : items) {
-            item.tick();
+            item.tick(eventQueue);
         }
 
-        simulate(deltaTime);
+        simulateBullets(eventQueue);
+
+        return deltaTime;
     }
 
-    public void simulate(float deltaTime) {
+    public void simulateBullets(ISFSArray eventQueue) {
         List<ExoBullet> expiringBullets = new ArrayList<>(activeBullets.size());
         Map<ExoBullet, ExoUserData> playerHits = new HashMap<>();
-
-        for (User user : room.getPlayersList()) {
-            if (user != null) {
-                ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
-                player.body.setTransform(new Vector2(player.getX(), player.getY()), 0f);
-            }
-        }
 
         for (ExoBullet bullet : activeBullets) {
             boolean last = false;
 
-            float raycastDist = bullet.velocity * deltaTime;
-            float remainingDist = bullet.range - bullet.dist;
+            float raycastDist = bullet.velocity * bullet.tick(eventQueue);
+            float remainingDist = bullet.range - bullet.getDist();
 
             if (raycastDist >= remainingDist) {
                 last = true;
@@ -206,13 +203,12 @@ public class ExoWorld {
             float raycastX = bullet.velocityXComponent * raycastDist;
             float raycastY = bullet.velocityYComponent * raycastDist;
 
+            float x = bullet.getX();
+            float y = bullet.getY();
+
             ExoUserData raycastData =
                     bulletRaycast(
-                            bullet.x,
-                            bullet.y,
-                            bullet.x + raycastX,
-                            bullet.y + raycastY,
-                            bullet.player.user.getPlayerId());
+                            x, y, x + raycastX, y + raycastY, bullet.player.user.getPlayerId());
 
             if (raycastData != null) {
                 expiringBullets.add(bullet);
@@ -223,9 +219,9 @@ public class ExoWorld {
                 if (last) {
                     expiringBullets.add(bullet);
                 } else {
-                    bullet.dist += raycastDist;
-                    bullet.x += raycastX;
-                    bullet.y += raycastY;
+                    bullet.addDist(raycastDist);
+                    bullet.addX(raycastX);
+                    bullet.addY(raycastY);
                 }
             }
         }
@@ -234,7 +230,7 @@ public class ExoWorld {
         for (ExoBullet bullet : playerHits.keySet()) {
             ExoUserData hitData = playerHits.get(bullet);
             ((ExoPlayer) room.getPlayersList().get(hitData.id - 1).getProperty("ExoPlayer"))
-                    .hit(bullet, hitData.part, room, exoProps);
+                    .hit(bullet, hitData.part, exoProps, eventQueue);
         }
     }
 
@@ -319,10 +315,10 @@ public class ExoWorld {
     }
 
     private class ExoUserData {
-        public final int id;
-        public final int part;
+        private final int id;
+        private final int part;
 
-        public ExoUserData(int id, int part) {
+        private ExoUserData(int id, int part) {
             this.id = id;
             this.part = part;
         }

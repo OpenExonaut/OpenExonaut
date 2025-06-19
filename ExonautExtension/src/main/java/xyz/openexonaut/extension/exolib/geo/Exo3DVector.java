@@ -44,8 +44,7 @@ public class Exo3DVector {
                 newZ = z * scale.z;
                 break;
             default:
-                System.err.println("Unknown rotation " + rotation + "!");
-                System.exit(1);
+                throw new RuntimeException(String.format("Unknown rotation %s!", rotation));
         }
         // don't know why it's - for x position and + for y/z position
         return new Exo3DVector(newX - position.x, newY + position.y, newZ + position.z);
@@ -61,6 +60,6 @@ public class Exo3DVector {
 
     @Override
     public String toString() {
-        return "(" + x + ", " + y + ", " + z + ")";
+        return String.format("(%f, %f, %f)", x, y, z);
     }
 }

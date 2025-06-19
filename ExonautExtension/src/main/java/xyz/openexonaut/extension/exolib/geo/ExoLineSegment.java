@@ -31,6 +31,6 @@ public class ExoLineSegment {
 
     @Override
     public String toString() {
-        return "{" + vertexOne + ", " + vertexTwo + "}";
+        return String.format("{%s, %s}", vertexOne, vertexTwo);
     }
 }

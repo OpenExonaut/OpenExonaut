@@ -2,6 +2,8 @@ package xyz.openexonaut.extension.exolib.data;
 
 import com.fasterxml.jackson.databind.*;
 
+import xyz.openexonaut.extension.exolib.resources.*;
+
 public class ExoMod {
     public final ExoWeapon weapon;
     public final String Name;
@@ -9,8 +11,8 @@ public class ExoMod {
     public final float Projectile_Range;
     public final float Damage_Per_Projectile;
 
-    public ExoMod(JsonNode node, ExoWeapon[] allWeapons) {
-        this.weapon = allWeapons[node.get("WeaponID").asInt() - 1];
+    public ExoMod(JsonNode node, ExoGameData gameData) {
+        this.weapon = gameData.getWeapon(node.get("WeaponID").asInt());
         this.Name = node.get("Name").asText();
         this.Num_Projectiles = node.get("Num_Projectiles").asInt();
         this.Projectile_Range = (float) node.get("Projectile_Range").asDouble();

@@ -1,4 +1,4 @@
-package xyz.openexonaut.extension.zone.messages;
+package xyz.openexonaut.extension.exolib.messages;
 
 import com.smartfoxserver.bitswarm.sessions.*;
 

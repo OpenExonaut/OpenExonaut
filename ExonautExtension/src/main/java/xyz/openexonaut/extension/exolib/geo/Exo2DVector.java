@@ -29,6 +29,6 @@ public class Exo2DVector {
 
     @Override
     public String toString() {
-        return "(" + x + ", " + y + ")";
+        return String.format("(%f, %f)", x, y);
     }
 }

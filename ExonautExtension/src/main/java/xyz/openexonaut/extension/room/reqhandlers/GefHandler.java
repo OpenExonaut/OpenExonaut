@@ -7,7 +7,9 @@ import com.smartfoxserver.v2.extensions.*;
 public class GefHandler extends BaseClientRequestHandler {
     @Override
     public void handleClientRequest(User sender, ISFSObject params) {
-        trace(ExtensionLogLevel.DEBUG, "room gef from " + sender.toString());
+        trace(
+                ExtensionLogLevel.DEBUG,
+                String.format("room gef from %s (id %d)", sender.getName(), sender.getId()));
 
         getApi().disconnectUser(sender); // TODO: how should this actually work?
     }

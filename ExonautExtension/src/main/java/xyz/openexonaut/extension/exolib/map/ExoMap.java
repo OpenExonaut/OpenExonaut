@@ -7,10 +7,6 @@ import com.badlogic.gdx.physics.box2d.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 
 public class ExoMap {
-    static {
-        Box2D.init();
-    }
-
     public final FixtureDef[] wallFixtureDefs;
     public final Exo2DVector[] teamPlayerSpawns;
     public final Exo2DVector[] ffaPlayerSpawns;
@@ -22,6 +18,10 @@ public class ExoMap {
     public final float scale;
 
     private boolean finalizedItemSpawns = false;
+
+    static {
+        Box2D.init();
+    }
 
     public ExoMap(
             FixtureDef[] wallFixtureDefs,

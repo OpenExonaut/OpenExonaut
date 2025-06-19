@@ -6,11 +6,12 @@ import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoItemSpawner {
+    public static final float radius = 4f;
+
     public final ExoPickupEnum type;
     public final float respawnTime;
     public final float x;
     public final float y;
-    public static final float radius = 4f;
 
     private boolean finalized = false;
     private float height = 24f;
@@ -68,13 +69,7 @@ public class ExoItemSpawner {
 
     @Override
     public String toString() {
-        return type
-                + " spawner at ("
-                + x
-                + ", "
-                + y
-                + "), respawns after "
-                + respawnTime
-                + " seconds.";
+        return String.format(
+                "%s spawner at (%f, %f), respawns after %f seconds.", type, x, y, respawnTime);
     }
 }
