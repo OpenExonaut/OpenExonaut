@@ -3,29 +3,37 @@ package xyz.openexonaut.extension.exolib.evthandlers;
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.data.*;
 
-import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.game.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class SendActiveBoostInfo {
-    public static void handle(Room room, ExoPlayer player, ISFSObject params) {
-        ISFSArray eventArray = new SFSArray();
+    public static final int msgType = 25;
+    public final int boostIdx;
+    public final float boostTime;
+
+    public SendActiveBoostInfo(Integer boostIdx, Float boostTime) {
+        this.boostIdx = boostIdx;
+        this.boostTime = boostTime;
+    }
+
+    public static void handle(Room room, ExoPlayer player, ISFSObject params, String evtName) {
+        ISFSArray responseArray = new SFSArray();
+        ISFSArray tickArray = new SFSArray();
         ExoItem[] items = (ExoItem[]) room.getExtension().handleInternalMessage("getItems", null);
         for (int i = 0; i < items.length; i++) {
             ExoItem item = items[i];
-            item.tick(); // report accurate times
+            item.tick(tickArray); // report accurate times
             if (!item.active()) {
-                ISFSObject oppResponse = new SFSObject();
-                oppResponse.putInt("playerId", params.getInt("playerId"));
-                oppResponse.putInt("msgType", ExoEvtEnum.EVT_ACTIVE_BOOST_INFO.code);
-                oppResponse.putInt("boostIdx", i);
-                oppResponse.putFloat("boostTime", item.timeToRespawn());
-                eventArray.addSFSObject(oppResponse);
+                responseArray.addSFSObject(
+                        ExoParamUtils.serialize(
+                                new SendActiveBoostInfo(i, item.timeToRespawn()),
+                                player.user.getPlayerId()));
             }
         }
 
-        ISFSObject response = new SFSObject();
-        response.putSFSArray("events", eventArray);
-        ExoSendUtils.sendEventToOne(room, response, player.user);
+        ExoSendUtils.sendEventArrayToOne(room, responseArray, player.user);
+        if (tickArray.size() > 0) {
+            ExoSendUtils.sendEventArrayToAll(room, tickArray);
+        }
     }
 }

@@ -13,6 +13,6 @@ public class ExoTriangleVertices {
 
     @Override
     public String toString() {
-        return "[" + vertexOne + ", " + vertexTwo + ", " + vertexThree + "]";
+        return String.format("[%d, %d, %d]", vertexOne, vertexTwo, vertexThree);
     }
 }

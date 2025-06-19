@@ -15,6 +15,6 @@ public class ExoInt2DVector {
 
     @Override
     public String toString() {
-        return "(" + x + ", " + y + ")";
+        return String.format("(%d, %d)", x, y);
     }
 }

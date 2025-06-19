@@ -6,39 +6,43 @@ import java.util.List;
 
 import com.badlogic.gdx.physics.box2d.*;
 
-import com.smartfoxserver.v2.api.*;
+import com.smartfoxserver.v2.*;
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.data.*;
 import com.smartfoxserver.v2.entities.variables.*;
 
 import xyz.openexonaut.extension.exolib.data.*;
 import xyz.openexonaut.extension.exolib.enums.*;
+import xyz.openexonaut.extension.exolib.evthandlers.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
-import xyz.openexonaut.extension.exolib.messages.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
-public class ExoPlayer {
+public class ExoPlayer extends ExoTickable {
     public final User user;
 
-    public ExoSuit suit = null;
+    private ExoSuit suit = null;
 
-    public float crashTimer = 5f;
-    public float invicibilityTimer = 0f;
-    public float healthRefillTimer = 0f;
-    public float boostTimer = 0f;
-    public float teamBoostTimer = 0f;
+    private float crashTimer = 5f;
+    private float invicibilityTimer = 0f;
+    private float healthRefillTimer = 0f;
+    private float boostTimer = 0f;
+    private float teamBoostTimer = 0f;
 
-    public int crashes = 0;
-    public int fuelConsumed = 0;
-    public int hacksInvisible = 0;
-    public int hacksSpeed = 0;
-    public int hacksDamageBoost = 0;
-    public int hacksArmorBoost = 0;
+    // TODO: achievement/performance metrics
+    @SuppressWarnings("unused")
+    private int crashes = 0,
+            fuelConsumed = 0,
+            hacksInvisible = 0,
+            hacksSpeed = 0,
+            hacksDamageBoost = 0,
+            hacksArmorBoost = 0;
 
-    public long lastNano = System.nanoTime();
+    private Body body = null;
 
-    public Body body = null;
+    static {
+        Box2D.init();
+    }
 
     public ExoPlayer(User user) {
         this.user = user;
@@ -88,35 +92,43 @@ public class ExoPlayer {
         return user.getVariable("weaponId").getIntValue();
     }
 
-    @SuppressWarnings("rawtypes")
-    public void updateVariables(List changedVariables, ISFSApi sfsApi) {
+    public ExoSuit getSuit() {
+        return suit;
+    }
+
+    public Body getBody() {
+        return body;
+    }
+
+    @SuppressWarnings("rawtypes") // SFS2X gives a raw list
+    public void updateVariables(List changedVariables) {
         for (Object o : changedVariables) {
             UserVariable var = (UserVariable) o;
             if (var.getName().equals("clientState")) {
                 // fixes spawning across games to do this instead of having avatarState captured
                 // from the beginning
                 if (var.getStringValue().equals("playing")) {
-                    sfsApi.setUserVariables(
-                            user, List.of(new SFSUserVariable("avatarState", "captured")));
+                    setVariables(List.of(new SFSUserVariable("avatarState", "captured")));
                 }
             }
         }
-    }
-
-    public void setVariables(List<UserVariable> variables, Room room) {
-        room.getExtension()
-                .handleInternalMessage("setVariables", new ExoVariableUpdate(user, variables));
     }
 
     public void setSuit(ExoSuit suit) {
         this.suit = suit;
     }
 
-    // return value: seconds since last tick
-    public float tick(Room room) {
-        long nano = System.nanoTime();
-        float deltaTime = (nano - lastNano) / 1_000_000_000f;
-        lastNano = nano;
+    public void addFuelConsumed(int fuelConsumed) {
+        this.fuelConsumed += fuelConsumed;
+    }
+
+    public void setBody(Body body) {
+        this.body = body;
+    }
+
+    @Override
+    public float tick(ISFSArray eventQueue) {
+        float deltaTime = super.tick(eventQueue);
 
         List<UserVariable> variableChanges = new ArrayList<>();
 
@@ -138,16 +150,9 @@ public class ExoPlayer {
         if (getBoost() != 0) {
             boostTimer = Math.max(boostTimer - deltaTime, 0f);
             if (boostTimer == 0f) {
-                ISFSObject notification = new SFSObject();
-                notification.putInt("playerId", user.getPlayerId());
-                notification.putInt("msgType", ExoEvtEnum.EVT_SEND_PICKUP_COMPLETE.code);
-                notification.putInt("uPickup", getBoost());
-
-                ISFSArray eventArray = new SFSArray();
-                ISFSObject response = new SFSObject();
-                eventArray.addSFSObject(notification);
-                response.putSFSArray("events", eventArray);
-                room.getExtension().send("sendEvents", response, room.getPlayersList());
+                eventQueue.addSFSObject(
+                        ExoParamUtils.serialize(
+                                new SendPickupComplete(getBoost()), user.getPlayerId()));
 
                 variableChanges.add(new SFSUserVariable("boost", (Integer) 0));
             }
@@ -155,16 +160,9 @@ public class ExoPlayer {
         if (getTeamBoost() != 0) {
             teamBoostTimer = Math.max(teamBoostTimer - deltaTime, 0f);
             if (teamBoostTimer == 0f) {
-                ISFSObject notification = new SFSObject();
-                notification.putInt("playerId", user.getPlayerId());
-                notification.putInt("msgType", ExoEvtEnum.EVT_SEND_PICKUP_COMPLETE.code);
-                notification.putInt("uPickup", getTeamBoost());
-
-                ISFSArray eventArray = new SFSArray();
-                ISFSObject response = new SFSObject();
-                eventArray.addSFSObject(notification);
-                response.putSFSArray("events", eventArray);
-                room.getExtension().send("sendEvents", response, room.getPlayersList());
+                eventQueue.addSFSObject(
+                        ExoParamUtils.serialize(
+                                new SendPickupComplete(getTeamBoost()), user.getPlayerId()));
 
                 variableChanges.add(new SFSUserVariable("teamBoost", (Integer) 0));
             }
@@ -182,7 +180,7 @@ public class ExoPlayer {
         }
 
         if (variableChanges.size() > 0) {
-            setVariables(variableChanges, room);
+            setVariables(variableChanges);
         }
 
         return deltaTime;
@@ -213,7 +211,12 @@ public class ExoPlayer {
         // TODO: disjoint phantoms?
     }
 
-    public void hit(ExoBullet bullet, int where, Room room, ExoProps exoProps) {
+    public void hit(ExoBullet bullet, int where, ExoProps exoProps, ISFSArray eventQueue) {
+        String avatarState = getAvatarState();
+        if (avatarState.equals("captured") || avatarState.equals("invincible")) {
+            return;
+        }
+
         boolean headshot = where == 1;
 
         float damageModifier = 1f;
@@ -230,43 +233,38 @@ public class ExoPlayer {
         float health = getHealth();
         health -= bullet.damage * damageModifier;
 
-        List<UserVariable> variableChanges = new ArrayList<>();
-
-        ISFSObject notification = new SFSObject();
-        notification.putInt("bnum", bullet.num);
-        notification.putInt("playerId", user.getPlayerId() - 1);
-        notification.putInt("uAttackerID", bullet.player.user.getPlayerId() - 1);
-
         if (health <= 0f) {
-            notification.putInt("msgType", ExoEvtEnum.EVT_SEND_CAPTURED.code);
+            eventQueue.addSFSObject(
+                    ExoParamUtils.serialize(
+                            new SendCaptured(bullet.num, bullet.player.user.getPlayerId() - 1),
+                            user.getPlayerId() - 1));
 
             crashes++;
-            bullet.player.addHack(room, bullet);
+            bullet.player.addHack(bullet);
             health = suit.Health;
             crashTimer = 8f;
 
-            variableChanges.add(new SFSUserVariable("capturedMethod", (Integer) bullet.weaponId));
-            variableChanges.add(
-                    new SFSUserVariable("capturedBy", (Integer) bullet.player.user.getPlayerId()));
-            variableChanges.add(new SFSUserVariable("avatarState", "captured"));
+            setVariables(
+                    List.of(
+                            new SFSUserVariable("capturedMethod", (Integer) bullet.weaponId),
+                            new SFSUserVariable(
+                                    "capturedBy", (Integer) bullet.player.user.getPlayerId()),
+                            new SFSUserVariable("avatarState", "captured"),
+                            new SFSUserVariable("health", (Float) health)));
         } else {
-            notification.putInt("msgType", ExoEvtEnum.EVT_SEND_DAMAGE.code);
-            notification.putFloat("damage", bullet.damage);
-            notification.putInt("hs", headshot ? 1 : 0);
-            notification.putFloat("health", health);
+            eventQueue.addSFSObject(
+                    ExoParamUtils.serialize(
+                            new SendDamage(
+                                    bullet.num,
+                                    bullet.player.user.getPlayerId() - 1,
+                                    bullet.damage,
+                                    headshot ? 1 : 0,
+                                    health),
+                            user.getPlayerId() - 1));
 
             healthRefillTimer = suit.Regen_Delay;
+            setVariables(List.of(new SFSUserVariable("health", (Float) health)));
         }
-
-        variableChanges.add(new SFSUserVariable("health", (Float) health));
-
-        setVariables(variableChanges, room);
-
-        ISFSArray eventArray = new SFSArray();
-        ISFSObject response = new SFSObject();
-        eventArray.addSFSObject(notification);
-        response.putSFSArray("events", eventArray);
-        room.getExtension().send("sendEvents", response, room.getPlayersList());
     }
 
     public int getBoostResponse() {
@@ -285,8 +283,8 @@ public class ExoPlayer {
         return responseVal;
     }
 
-    public void addHack(Room room, ExoBullet bullet) {
-        setVariables(List.of(new SFSUserVariable("hacks", (Integer) (getHacks() + 1))), room);
+    public void addHack(ExoBullet bullet) {
+        setVariables(List.of(new SFSUserVariable("hacks", (Integer) (getHacks() + 1))));
 
         int boost = getBoost();
         int teamBoost = getTeamBoost();
@@ -307,15 +305,19 @@ public class ExoPlayer {
         }
     }
 
-    public void setBoost(int type, int time, Room room) {
-        tick(room); // clock starts now, not when the last tick happened
+    public void setBoost(int type, int time, ISFSArray eventQueue) {
+        tick(eventQueue); // clock starts now, not when the last tick happened
         boostTimer = (float) time;
-        setVariables(List.of(new SFSUserVariable("boost", (Integer) type)), room);
+        setVariables(List.of(new SFSUserVariable("boost", (Integer) type)));
     }
 
-    public void setTeamBoost(int type, int time, Room room) {
-        tick(room); // clock starts now, not when the last tick happened
+    public void setTeamBoost(int type, int time, ISFSArray eventQueue) {
+        tick(eventQueue); // clock starts now, not when the last tick happened
         teamBoostTimer = (float) time;
-        setVariables(List.of(new SFSUserVariable("teamBoost", (Integer) type)), room);
+        setVariables(List.of(new SFSUserVariable("teamBoost", (Integer) type)));
+    }
+
+    private void setVariables(List<UserVariable> variables) {
+        SmartFoxServer.getInstance().getAPIManager().getSFSApi().setUserVariables(user, variables);
     }
 }

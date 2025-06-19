@@ -1,9 +1,10 @@
-package xyz.openexonaut.extension.zone.loader;
+package xyz.openexonaut.extension.exolib.resources;
 
 import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
 import java.nio.file.*;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 
@@ -14,29 +15,26 @@ import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
 
-public class MapLoader {
+public class ExoMapLoader {
+    public final FixtureDef[] wallFixtureDefs;
+    public final Exo2DVector[] teamPlayerSpawns;
+    public final Exo2DVector[] ffaPlayerSpawns;
+    public final ExoItemSpawner[] teamItemSpawns;
+    public final ExoItemSpawner[] ffaItemSpawns;
+
     private final Exo3DVector[] modifiedCoords;
     private final ExoTriangleVertices[] triangles;
-    private final Exo2DVector[] teamPlayerSpawns;
-    private final Exo2DVector[] ffaPlayerSpawns;
-    private final ExoItemSpawner[] teamItemSpawns;
-    private final ExoItemSpawner[] ffaItemSpawns;
-    private final FixtureDef[] wallFixtureDefs;
     private final ExoInt2DVector drawTranslate;
     private final ExoInt2DVector drawSize;
-
-    private final String selfRotation;
-    private final String fatherRotation;
-    private final Exo3DVector selfScale;
-    private final Exo3DVector selfPosition;
-    private final Exo3DVector fatherScale;
-    private final Exo3DVector fatherPosition;
 
     static {
         Box2D.init();
     }
 
-    public MapLoader(String path) {
+    public ExoMapLoader(Path path) {
+        Path spawnsFolder = path.resolve("spawns");
+        Path pickupsFolder = path.resolve("pickups");
+
         String vertexFile = "";
         String polygonFile = "";
         String collisionInfoFile = "";
@@ -47,37 +45,37 @@ public class MapLoader {
         String ffaItemSpawnFile = "";
         try {
             vertexFile =
-                    Files.readString(Paths.get(path + "/collision_vertices.txt"))
+                    Files.readString(path.resolve("collision_vertices.txt"))
                             .replace("\r", "")
                             .replace("\n", "");
             polygonFile =
-                    Files.readString(Paths.get(path + "/collision_polygons.txt"))
+                    Files.readString(path.resolve("collision_polygons.txt"))
                             .replace("\r", "")
                             .replace("\n", "");
             collisionInfoFile =
-                    Files.readString(Paths.get(path + "/collision_info.txt"))
+                    Files.readString(path.resolve("collision_info.txt"))
                             .strip()
                             .replace("\r", "")
                             .replace("\n\n", "\n");
 
             teamPlayerSpawnFile =
-                    Files.readString(Paths.get(path + "/spawns/t.txt"))
+                    Files.readString(spawnsFolder.resolve("t.txt"))
                             .replace("\r", "")
                             .replace("\n", ", ");
             ffaPlayerSpawnFile =
-                    Files.readString(Paths.get(path + "/spawns/b.txt"))
+                    Files.readString(spawnsFolder.resolve("b.txt"))
                             .replace("\r", "")
                             .replace("\n", ", ");
             teamItemSpawnFile =
-                    Files.readString(Paths.get(path + "/pickups/t.txt"))
+                    Files.readString(pickupsFolder.resolve("t.txt"))
                             .replace("\r", "")
                             .replace("\n", ", ");
             ffaItemSpawnFile =
-                    Files.readString(Paths.get(path + "/pickups/b.txt"))
+                    Files.readString(pickupsFolder.resolve("b.txt"))
                             .replace("\r", "")
                             .replace("\n", ", ");
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
 
         String[] vertexStrings = vertexFile.split(",");
@@ -88,15 +86,17 @@ public class MapLoader {
         String[] teamItemSpawnStrings = teamItemSpawnFile.split(", ");
         String[] ffaItemSpawnStrings = ffaItemSpawnFile.split(", ");
 
-        selfRotation = getProperty(collisionInfoStrings, "rotation");
-        fatherRotation = getProperty(collisionInfoStrings, "father_rotation");
+        String selfRotation = getProperty(collisionInfoStrings, "rotation");
+        String fatherRotation = getProperty(collisionInfoStrings, "father_rotation");
         drawTranslate =
                 getInt2DVector(getProperty(collisionInfoStrings, "draw_translate").split(", "));
         drawSize = getInt2DVector(getProperty(collisionInfoStrings, "draw_size").split(", "));
-        selfScale = get3DVector(getProperty(collisionInfoStrings, "scale").split(", "));
-        selfPosition = get3DVector(getProperty(collisionInfoStrings, "position").split(", "));
-        fatherScale = get3DVector(getProperty(collisionInfoStrings, "father_scale").split(", "));
-        fatherPosition =
+        Exo3DVector selfScale = get3DVector(getProperty(collisionInfoStrings, "scale").split(", "));
+        Exo3DVector selfPosition =
+                get3DVector(getProperty(collisionInfoStrings, "position").split(", "));
+        Exo3DVector fatherScale =
+                get3DVector(getProperty(collisionInfoStrings, "father_scale").split(", "));
+        Exo3DVector fatherPosition =
                 get3DVector(getProperty(collisionInfoStrings, "father_position").split(", "));
 
         modifiedCoords = new Exo3DVector[vertexStrings.length / 3];
@@ -207,9 +207,7 @@ public class MapLoader {
         for (String s : properties) {
             if (s.startsWith(property)) return s.substring(s.indexOf(':') + 2);
         }
-        System.err.println("No such property " + property + "!");
-        System.exit(1);
-        return null;
+        throw new RuntimeException(String.format("No such property %s!", property));
     }
 
     public Image getImage(
@@ -248,25 +246,5 @@ public class MapLoader {
 
     public ExoInt2DVector getDrawSize(float scalar) {
         return drawSize.scale(scalar);
-    }
-
-    public FixtureDef[] getWallFixtureDefs() {
-        return wallFixtureDefs;
-    }
-
-    public Exo2DVector[] getTeamPlayerSpawns() {
-        return teamPlayerSpawns;
-    }
-
-    public Exo2DVector[] getFFAPlayerSpawns() {
-        return ffaPlayerSpawns;
-    }
-
-    public ExoItemSpawner[] getTeamItemSpawns() {
-        return teamItemSpawns;
-    }
-
-    public ExoItemSpawner[] getFFAItemSpawns() {
-        return ffaItemSpawns;
     }
 }

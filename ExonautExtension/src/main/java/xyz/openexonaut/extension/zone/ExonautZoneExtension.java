@@ -2,122 +2,59 @@ package xyz.openexonaut.extension.zone;
 
 import java.io.*;
 import java.net.*;
+import java.nio.file.*;
 import java.util.*;
 
 import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.node.*;
-import com.mongodb.client.*;
-import com.mongodb.client.model.*;
 import org.bson.*;
 
 import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.extensions.*;
 
 import xyz.openexonaut.extension.exolib.data.*;
-import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
+import xyz.openexonaut.extension.exolib.messages.*;
+import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.zone.eventhandlers.*;
-import xyz.openexonaut.extension.zone.loader.*;
-import xyz.openexonaut.extension.zone.messages.*;
 import xyz.openexonaut.extension.zone.reqhandlers.*;
 
 public class ExonautZoneExtension extends SFSExtension {
-    private Properties props = null;
-    private JsonNode gameData = null;
-    private MongoClient mongoClient = null;
-    private MongoDatabase database = null;
-    private MongoCollection<Document> userCollection = null;
-
-    private int mapCount = 0;
-    private ExoMap[] maps = null;
-    private ExoWeapon[] weapons = null;
-    private ExoSuit[] suits = null;
-
-    private boolean debugGFX = false;
-    private float debugGFXScale = 1f;
-
     private ExoProps exoProps = null;
+    private ExoDB database = null;
+    private ExoGameData gameData = null;
+    private ExoMapManager mapManager = null;
 
     @Override
     public void init() {
-        props = getConfigProperties();
+        Properties props = getConfigProperties();
         if (!props.containsKey("httpURI")) {
             throw new RuntimeException(
                     "HTTP server URI not set. Please create config.properties in the extension folder and define it.");
         }
-        exoProps = new ExoProps(props);
 
         try {
             gameData =
-                    new ObjectMapper()
-                            .readTree(
-                                    URI.create(
-                                                    props.getProperty("httpURI")
-                                                            + "/exonaut/gamedata.json")
-                                            .toURL());
-            mongoClient = MongoClients.create(props.getProperty("mongoURI"));
-            database = mongoClient.getDatabase("openexonaut");
-            userCollection = database.getCollection("users");
+                    new ExoGameData(
+                            new ObjectMapper()
+                                    .readTree(
+                                            URI.create(
+                                                            String.format(
+                                                                    "%s/exonaut/gamedata.json",
+                                                                    props.getProperty("httpURI")))
+                                                    .toURL()));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        debugGFX = Boolean.parseBoolean(props.getProperty("debugGFX"));
-        debugGFXScale = Float.parseFloat(props.getProperty("debugGFXScale"));
-        mapCount = Integer.parseInt(props.getProperty("mapCount"));
-
-        maps = new ExoMap[mapCount];
-        for (int i = 0; i < mapCount; i++) {
-            // world 0 exists, but is the tutorial world, and the tutorial is always run locally
-            MapLoader mapLoader = new MapLoader(getCurrentFolder() + "worlds/world_" + (i + 1));
-
-            if (debugGFX) {
-                ExoInt2DVector scaledDrawTranslate = mapLoader.getDrawTranslate(debugGFXScale);
-                ExoInt2DVector scaledDrawSize = mapLoader.getDrawSize(debugGFXScale);
-                maps[i] =
-                        new ExoMap(
-                                mapLoader.getWallFixtureDefs(),
-                                mapLoader.getTeamPlayerSpawns(),
-                                mapLoader.getFFAPlayerSpawns(),
-                                mapLoader.getTeamItemSpawns(),
-                                mapLoader.getFFAItemSpawns(),
-                                mapLoader.getImage(
-                                        debugGFXScale, scaledDrawTranslate, scaledDrawSize),
-                                scaledDrawTranslate,
-                                scaledDrawSize,
-                                debugGFXScale);
-            } else {
-                maps[i] =
-                        new ExoMap(
-                                mapLoader.getWallFixtureDefs(),
-                                mapLoader.getTeamPlayerSpawns(),
-                                mapLoader.getFFAPlayerSpawns(),
-                                mapLoader.getTeamItemSpawns(),
-                                mapLoader.getFFAItemSpawns(),
-                                null,
-                                null,
-                                null,
-                                0f);
-            }
-        }
-
-        ArrayNode weaponData = (ArrayNode) gameData.get("weapons");
-        weapons = new ExoWeapon[weaponData.size()];
-        for (int i = 0; i < weapons.length; i++) {
-            weapons[i] = new ExoWeapon(weaponData.get(i));
-        }
-
-        ArrayNode modData = (ArrayNode) gameData.get("mods");
-        ExoMod[] mods = new ExoMod[modData.size()];
-        for (int i = 0; i < mods.length; i++) {
-            mods[i] = new ExoMod(modData.get(i), weapons);
-        }
-
-        ArrayNode suitData = (ArrayNode) gameData.get("suits");
-        suits = new ExoSuit[suitData.size()];
-        for (int i = 0; i < suits.length; i++) {
-            suits[i] = new ExoSuit(suitData.get(i), mods);
-        }
+        exoProps = new ExoProps(props);
+        database = new ExoDB(props.getProperty("mongoURI"));
+        mapManager =
+                new ExoMapManager(
+                        Paths.get(getCurrentFolder(), "worlds"),
+                        Integer.parseInt(props.getProperty("mapCount")),
+                        Boolean.parseBoolean(props.getProperty("debugGFX"))
+                                ? Float.parseFloat(props.getProperty("debugGFXScale"))
+                                : 0f);
 
         addRequestHandler("findRoom", FindRoomReqHandler.class);
 
@@ -129,53 +66,29 @@ public class ExonautZoneExtension extends SFSExtension {
 
     @Override
     public void destroy() {
-        for (ExoMap map : maps) {
-            if (map != null) {
-                map.destroy();
-            }
-        }
-
-        mongoClient.close();
-
+        mapManager.destroy();
+        database.destroy();
         super.destroy();
     }
 
-    private Document getFullUserObject(String tegid) {
-        return userCollection.find(Filters.eq("user.TEGid", tegid)).first();
-    }
-
     private ExoMap getMap(int mapId) {
-        return maps[mapId - 1];
+        return mapManager.getMap(mapId);
     }
 
-    private ExoSuit[] getSuits() {
-        return suits;
+    private ExoSuit getSuit(int id) {
+        return gameData.getSuit(id);
     }
 
-    private ExoWeapon[] getWeapons() {
-        return weapons;
+    private ExoGameData getGameData() {
+        return gameData;
     }
 
-    // returns: dname if valid non-guest login, null otherwise; input password is encrypted by SFS2X
     private String checkLogin(ExoLoginParameters loginArgs) {
-        Document userObject = getFullUserObject(loginArgs.username);
-        if (userObject != null) {
-            if (getApi().checkSecurePassword(
-                            loginArgs.session,
-                            userObject.get("user", Document.class).getString("authid"),
-                            loginArgs.password)) {
-                return userObject.get("user", Document.class).getString("dname");
-            }
-        }
-        return null;
+        return database.checkLogin(loginArgs.session, loginArgs.username, loginArgs.password);
     }
 
     private Document getPlayerObject(String tegid) {
-        Document userObject = getFullUserObject(tegid);
-        if (userObject != null) {
-            return userObject.get("player", Document.class);
-        }
-        return null;
+        return database.getPlayerObject(tegid);
     }
 
     private ExoProps getProps() {
@@ -183,7 +96,7 @@ public class ExonautZoneExtension extends SFSExtension {
     }
 
     private int getMapCount() {
-        return mapCount;
+        return mapManager.getMapCount();
     }
 
     @Override
@@ -191,10 +104,10 @@ public class ExonautZoneExtension extends SFSExtension {
         switch (command) {
             case "getMap":
                 return getMap((Integer) parameters);
-            case "getSuits":
-                return getSuits();
-            case "getWeapons":
-                return getWeapons();
+            case "getSuit":
+                return getSuit((Integer) parameters);
+            case "getGameData":
+                return getGameData();
             case "checkLogin":
                 return checkLogin((ExoLoginParameters) parameters);
             case "getPlayerObject":
@@ -204,8 +117,8 @@ public class ExonautZoneExtension extends SFSExtension {
             case "getMapCount":
                 return getMapCount();
             default:
-                trace(ExtensionLogLevel.ERROR, "Invalid internal message " + command);
-                return null;
+                throw new RuntimeException(
+                        String.format("Invalid internal zone message %s", command));
         }
     }
 }
