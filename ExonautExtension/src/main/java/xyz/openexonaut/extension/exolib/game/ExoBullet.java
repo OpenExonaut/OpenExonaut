@@ -2,10 +2,10 @@ package xyz.openexonaut.extension.exolib.game;
 
 import java.awt.*;
 
-import xyz.openexonaut.extension.exolib.data.*;
 import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
+import xyz.openexonaut.extension.exolib.resources.*;
 
 public class ExoBullet extends ExoTickable {
     public final int num;
@@ -31,9 +31,8 @@ public class ExoBullet extends ExoTickable {
             float damage,
             float x,
             float y,
-            ExoPlayer player,
-            ExoProps exoProps) {
-        float damageModifier = getDamageModifier(player, exoProps);
+            ExoPlayer player) {
+        float damageModifier = getDamageModifier(player);
         angle = (float) Math.toRadians(angle + 90f);
 
         this.num = num;
@@ -54,14 +53,8 @@ public class ExoBullet extends ExoTickable {
 
     // sniper hitscan
     public ExoBullet(
-            float startX,
-            float startY,
-            float endX,
-            float endY,
-            float damage,
-            ExoPlayer player,
-            ExoProps exoProps) {
-        float damageModifier = getDamageModifier(player, exoProps);
+            float startX, float startY, float endX, float endY, float damage, ExoPlayer player) {
+        float damageModifier = getDamageModifier(player);
 
         this.num = -1;
         this.range = 1000f;
@@ -108,13 +101,13 @@ public class ExoBullet extends ExoTickable {
         g.fillRect(drawBullet.x - 1, drawBullet.y - 1, 3, 3);
     }
 
-    private static float getDamageModifier(ExoPlayer player, ExoProps exoProps) {
+    private static float getDamageModifier(ExoPlayer player) {
         float modifier = 1f;
         if (player.getBoost() == ExoPickupEnum.boost_damage.id) {
-            modifier += exoProps.boostDamageMod;
+            modifier += ExoProps.getBoostDamageMod();
         }
         if (player.getTeamBoost() == ExoPickupEnum.boost_team_damage.id) {
-            modifier += exoProps.boostTeamDamageMod;
+            modifier += ExoProps.getBoostTeamDamageMod();
         }
         return modifier;
     }

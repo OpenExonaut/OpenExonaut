@@ -2,8 +2,6 @@ package xyz.openexonaut.extension.exolib.utils;
 
 import java.util.*;
 
-import org.bson.*;
-
 import com.smartfoxserver.bitswarm.sessions.*;
 import com.smartfoxserver.v2.*;
 import com.smartfoxserver.v2.api.*;
@@ -15,9 +13,11 @@ import com.smartfoxserver.v2.exceptions.*;
 
 import xyz.openexonaut.extension.exolib.data.*;
 import xyz.openexonaut.extension.exolib.game.*;
-import xyz.openexonaut.extension.exolib.messages.*;
+import xyz.openexonaut.extension.exolib.resources.*;
 
-public abstract class ExoEntryUtils {
+public final class ExoEntryUtils {
+    private ExoEntryUtils() {}
+
     // return value: success
     public static boolean login(Session session, String username, String password, Zone zone) {
         // empty string is guest login
@@ -25,12 +25,7 @@ public abstract class ExoEntryUtils {
             session.setProperty("dname", "");
             session.setProperty("tegid", "");
         } else {
-            String displayName =
-                    (String)
-                            zone.getExtension()
-                                    .handleInternalMessage(
-                                            "checkLogin",
-                                            new ExoLoginParameters(session, username, password));
+            String displayName = ExoDB.checkLogin(session, username, password);
 
             if (displayName == null) {
                 return false;
@@ -54,9 +49,7 @@ public abstract class ExoEntryUtils {
         if (tegid.equals("")) {
             displayName = user.getName();
         } else {
-            level =
-                    ((Document) zone.getExtension().handleInternalMessage("getPlayerObject", tegid))
-                            .getInteger("Level");
+            level = ExoDB.getPlayerObject(tegid).getInteger("Level");
         }
 
         SmartFoxServer.getInstance()
@@ -74,21 +67,11 @@ public abstract class ExoEntryUtils {
         CreateRoomSettings roomSettings = new CreateRoomSettings();
         List<RoomVariable> roomVars = new ArrayList<>();
         List<UserVariable> userVars = new ArrayList<>();
-        int mapId =
-                (int)
-                                (Math.random()
-                                        * (int)
-                                                zone.getExtension()
-                                                        .handleInternalMessage("getMapCount", null))
-                        + 1;
+        int mapId = (int) (Math.random() * ExoMapManager.getMapCount()) + 1;
         ExoPlayer player = (ExoPlayer) sender.getProperty("ExoPlayer");
         String mode;
 
-        ExoSuit suit =
-                (ExoSuit)
-                        zone.getExtension()
-                                .handleInternalMessage(
-                                        "getSuit", sender.getVariable("suitId").getIntValue());
+        ExoSuit suit = ExoGameData.getSuit(sender.getVariable("suitId").getIntValue());
 
         // nickName is prior set
         // level is prior set

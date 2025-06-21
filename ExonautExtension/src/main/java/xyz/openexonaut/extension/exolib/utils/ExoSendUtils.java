@@ -3,7 +3,9 @@ package xyz.openexonaut.extension.exolib.utils;
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.data.*;
 
-public abstract class ExoSendUtils {
+public final class ExoSendUtils {
+    private ExoSendUtils() {}
+
     public static void sendEventArrayToOne(Room room, ISFSArray eventArray, User recipient) {
         ISFSObject response = new SFSObject();
         response.putSFSArray("events", eventArray);

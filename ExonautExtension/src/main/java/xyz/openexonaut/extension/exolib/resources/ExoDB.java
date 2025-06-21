@@ -7,23 +7,27 @@ import org.bson.*;
 import com.smartfoxserver.bitswarm.sessions.*;
 import com.smartfoxserver.v2.*;
 
-public class ExoDB {
-    private final MongoClient mongoClient;
-    private final MongoDatabase database;
-    private final MongoCollection<Document> userCollection;
+public final class ExoDB {
+    private static MongoClient mongoClient;
+    private static MongoDatabase database;
+    private static MongoCollection<Document> userCollection;
 
-    public ExoDB(String mongoURI) {
+    private ExoDB() {}
+
+    public static void init(String mongoURI) {
+        destroy();
+
         mongoClient = MongoClients.create(mongoURI);
         database = mongoClient.getDatabase("openexonaut");
         userCollection = database.getCollection("users");
     }
 
-    public Document getFullUserObject(String tegid) {
+    private static Document getFullUserObject(String tegid) {
         return userCollection.find(Filters.eq("user.TEGid", tegid)).first();
     }
 
     // returns: dname if valid non-guest login, null otherwise; input password is encrypted by SFS2X
-    public String checkLogin(Session session, String username, String password) {
+    public static String checkLogin(Session session, String username, String password) {
         Document userObject = getFullUserObject(username);
         if (userObject != null) {
             if (SmartFoxServer.getInstance()
@@ -39,7 +43,7 @@ public class ExoDB {
         return null;
     }
 
-    public Document getPlayerObject(String tegid) {
+    public static Document getPlayerObject(String tegid) {
         Document userObject = getFullUserObject(tegid);
         if (userObject != null) {
             return userObject.get("player", Document.class);
@@ -47,7 +51,9 @@ public class ExoDB {
         return null;
     }
 
-    public void destroy() {
-        mongoClient.close();
+    public static void destroy() {
+        if (mongoClient != null) {
+            mongoClient.close();
+        }
     }
 }

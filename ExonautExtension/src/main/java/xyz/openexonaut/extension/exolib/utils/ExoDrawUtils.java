@@ -4,7 +4,9 @@ import java.awt.*;
 
 import xyz.openexonaut.extension.exolib.geo.*;
 
-public abstract class ExoDrawUtils {
+public final class ExoDrawUtils {
+    private ExoDrawUtils() {}
+
     public static void fillCapsule(
             Graphics g,
             Color topColor,

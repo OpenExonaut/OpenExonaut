@@ -11,8 +11,8 @@ public class ExoMod {
     public final float Projectile_Range;
     public final float Damage_Per_Projectile;
 
-    public ExoMod(JsonNode node, ExoGameData gameData) {
-        this.weapon = gameData.getWeapon(node.get("WeaponID").asInt());
+    public ExoMod(JsonNode node) {
+        this.weapon = ExoGameData.getWeapon(node.get("WeaponID").asInt());
         this.Name = node.get("Name").asText();
         this.Num_Projectiles = node.get("Num_Projectiles").asInt();
         this.Projectile_Range = (float) node.get("Projectile_Range").asDouble();
