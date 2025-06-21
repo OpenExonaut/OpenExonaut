@@ -5,12 +5,14 @@ import java.nio.file.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
 
-public class ExoMapManager {
-    private final int mapCount;
-    private final ExoMap[] maps;
+public final class ExoMapManager {
+    private static ExoMap[] maps;
 
-    public ExoMapManager(Path worldsFolder, int mapCount, float debugGFXScale) {
-        this.mapCount = mapCount;
+    private ExoMapManager() {}
+
+    public static void init(Path worldsFolder, int mapCount, float debugGFXScale) {
+        destroy();
+
         maps = new ExoMap[mapCount];
 
         for (int i = 0; i < mapCount; i++) {
@@ -49,18 +51,20 @@ public class ExoMapManager {
         }
     }
 
-    public int getMapCount() {
-        return mapCount;
+    public static int getMapCount() {
+        return maps.length;
     }
 
-    public ExoMap getMap(int mapId) {
+    public static ExoMap getMap(int mapId) {
         return maps[mapId - 1];
     }
 
-    public void destroy() {
-        for (ExoMap map : maps) {
-            if (map != null) {
-                map.destroy();
+    public static void destroy() {
+        if (maps != null) {
+            for (ExoMap map : maps) {
+                if (map != null) {
+                    map.destroy();
+                }
             }
         }
     }

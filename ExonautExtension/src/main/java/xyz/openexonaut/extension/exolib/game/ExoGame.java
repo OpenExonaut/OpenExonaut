@@ -14,8 +14,7 @@ import com.smartfoxserver.v2.entities.data.*;
 import com.smartfoxserver.v2.entities.variables.*;
 import com.smartfoxserver.v2.util.*;
 
-import xyz.openexonaut.extension.exolib.data.*;
-import xyz.openexonaut.extension.exolib.map.*;
+import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoGame extends ExoTickable implements Runnable {
@@ -26,7 +25,6 @@ public class ExoGame extends ExoTickable implements Runnable {
     public final AtomicInteger nextGrenadeId = new AtomicInteger(1);
 
     private final Room room;
-    private final ExoProps exoProps;
     private final TaskScheduler scheduler;
 
     private float queueTime;
@@ -36,27 +34,18 @@ public class ExoGame extends ExoTickable implements Runnable {
     private ScheduledFuture<?> gameHandle = null;
     private ScheduledFuture<?> peekHandle = null;
 
-    public ExoGame(Room room, ExoProps exoProps) {
+    public ExoGame(Room room) {
         this.room = room;
-        this.exoProps = exoProps;
         this.scheduler = SmartFoxServer.getInstance().getTaskScheduler();
 
-        world =
-                new ExoWorld(
-                        (ExoMap)
-                                room.getZone()
-                                        .getExtension()
-                                        .handleInternalMessage(
-                                                "getMap", room.getVariable("mapId").getIntValue()),
-                        room,
-                        exoProps);
+        world = new ExoWorld(ExoMapManager.getMap(room.getVariable("mapId").getIntValue()), room);
 
-        queueTime = exoProps.queueWait;
+        queueTime = ExoProps.getQueueWait();
 
         timeLimit =
                 room.getVariable("mode").getStringValue().equals("team")
-                        ? exoProps.teamTime
-                        : exoProps.soloTime;
+                        ? ExoProps.getTeamTime()
+                        : ExoProps.getSoloTime();
     }
 
     public void destroy() {
@@ -80,7 +69,7 @@ public class ExoGame extends ExoTickable implements Runnable {
     public void spawnPlayer(int id) {
         world.spawnPlayer(id);
 
-        if (room.getPlayersList().size() >= exoProps.minPlayers) {
+        if (room.getPlayersList().size() >= ExoProps.getMinPlayers()) {
             if (room.getVariable("state").getStringValue().equals("wait_for_min_players")) {
                 setVariables(List.of(new SFSRoomVariable("state", "countdown")));
                 // client state update targets 8 Hz. i think that's too infrequent, so let's
@@ -107,10 +96,10 @@ public class ExoGame extends ExoTickable implements Runnable {
             if (user != null) {
                 int id = user.getPlayerId() - 1;
                 int hacks = ((ExoPlayer) user.getProperty("ExoPlayer")).getHacks();
-                award[id] = exoProps.creditsParticipation; // participation
-                award[id] += hacks * exoProps.creditsPerHack; // hacks
+                award[id] = ExoProps.getCreditsParticipation(); // participation
+                award[id] += hacks * ExoProps.getCreditsPerHack(); // hacks
                 if (hacks == mostHacks) {
-                    award[id] += exoProps.creditsWin; // winning
+                    award[id] += ExoProps.getCreditsWin(); // winning
                 }
             }
         }

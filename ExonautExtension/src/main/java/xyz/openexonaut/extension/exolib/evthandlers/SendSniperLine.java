@@ -5,6 +5,7 @@ import com.smartfoxserver.v2.entities.data.*;
 
 import xyz.openexonaut.extension.exolib.data.*;
 import xyz.openexonaut.extension.exolib.game.*;
+import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class SendSniperLine {
@@ -27,10 +28,7 @@ public class SendSniperLine {
         if (args == null) {
             ErrorReceipt.handle(room, player, params, evtName);
         } else {
-            ExoWeapon weapon =
-                    (ExoWeapon)
-                            room.getExtension()
-                                    .handleInternalMessage("getWeapon", player.getWeaponId());
+            ExoWeapon weapon = ExoGameData.getWeapon(player.getWeaponId());
             float damage = weapon.Damage;
 
             ExoMod weaponMod = player.getSuit().WeaponMod;
@@ -50,10 +48,7 @@ public class SendSniperLine {
                                     args.xend,
                                     args.yend,
                                     damage,
-                                    player,
-                                    (ExoProps)
-                                            room.getExtension()
-                                                    .handleInternalMessage("getProps", null)));
+                                    player));
 
             ExoSendUtils.sendEventObjectToAll(
                     room, ExoParamUtils.serialize(args, player.user.getPlayerId()));

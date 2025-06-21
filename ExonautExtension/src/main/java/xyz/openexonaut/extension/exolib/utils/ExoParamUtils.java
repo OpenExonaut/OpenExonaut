@@ -4,7 +4,9 @@ import java.lang.reflect.*;
 
 import com.smartfoxserver.v2.entities.data.*;
 
-public abstract class ExoParamUtils {
+public final class ExoParamUtils {
+    private ExoParamUtils() {}
+
     public static <T> T deserializeField(ISFSObject params, String key, Class<T> clazz) {
         SFSDataWrapper wrapper = params.get(key);
         if (wrapper != null) {

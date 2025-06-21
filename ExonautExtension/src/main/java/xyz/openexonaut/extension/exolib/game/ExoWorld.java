@@ -11,7 +11,6 @@ import com.badlogic.gdx.physics.box2d.*;
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.data.*;
 
-import xyz.openexonaut.extension.exolib.data.*;
 import xyz.openexonaut.extension.exolib.map.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
@@ -20,7 +19,6 @@ public class ExoWorld extends ExoTickable {
     public final ExoItem[] items;
 
     private final Room room;
-    private final ExoProps exoProps;
 
     private final World world = new World(new Vector2(0f, -100f), true);
 
@@ -38,10 +36,9 @@ public class ExoWorld extends ExoTickable {
         Box2D.init();
     }
 
-    public ExoWorld(ExoMap map, Room room, ExoProps exoProps) {
+    public ExoWorld(ExoMap map, Room room) {
         this.map = map;
         this.room = room;
-        this.exoProps = exoProps;
 
         BodyDef wallDef = new BodyDef();
         wallDef.awake = false;
@@ -134,7 +131,7 @@ public class ExoWorld extends ExoTickable {
             if (raycastData.id != 0) {
                 ISFSArray eventArray = new SFSArray();
                 ((ExoPlayer) room.getPlayersList().get(raycastData.id - 1).getProperty("ExoPlayer"))
-                        .hit(bullet, raycastData.part, exoProps, eventArray);
+                        .hit(bullet, raycastData.part, eventArray);
                 ExoSendUtils.sendEventArrayToAll(room, eventArray);
             }
         }
@@ -230,7 +227,7 @@ public class ExoWorld extends ExoTickable {
         for (ExoBullet bullet : playerHits.keySet()) {
             ExoUserData hitData = playerHits.get(bullet);
             ((ExoPlayer) room.getPlayersList().get(hitData.id - 1).getProperty("ExoPlayer"))
-                    .hit(bullet, hitData.part, exoProps, eventQueue);
+                    .hit(bullet, hitData.part, eventQueue);
         }
     }
 

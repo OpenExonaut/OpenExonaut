@@ -5,30 +5,18 @@ package xyz.openexonaut.extension.room;
 import java.util.concurrent.atomic.*;
 
 import com.smartfoxserver.v2.core.*;
-import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.extensions.*;
 
-import xyz.openexonaut.extension.exolib.data.*;
 import xyz.openexonaut.extension.exolib.game.*;
-import xyz.openexonaut.extension.exolib.messages.*;
-import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.room.eventhandlers.*;
 import xyz.openexonaut.extension.room.reqhandlers.*;
 
 public class ExonautRoomExtension extends SFSExtension {
-    private Room room = null;
-    private ExoProps exoProps = null;
-    private ExoGameData gameData = null;
     private ExoGame game = null;
 
     @Override
     public void init() {
-        ISFSExtension zoneExtension = getParentZone().getExtension();
-
-        room = getParentRoom();
-        exoProps = (ExoProps) zoneExtension.handleInternalMessage("getProps", null);
-        gameData = (ExoGameData) zoneExtension.handleInternalMessage("getGameData", null);
-        game = new ExoGame(room, exoProps);
+        game = new ExoGame(getParentRoom());
 
         addEventHandler(SFSEventType.USER_JOIN_ROOM, UserJoinRoomHandler.class);
         addEventHandler(SFSEventType.USER_VARIABLES_UPDATE, UserVariableUpdateHandler.class);
@@ -56,10 +44,6 @@ public class ExonautRoomExtension extends SFSExtension {
         return game.timeLimit;
     }
 
-    private ExoWeapon getWeapon(int weaponId) {
-        return gameData.getWeapon(weaponId);
-    }
-
     private ExoItem[] getItems() {
         return game.world.items;
     }
@@ -78,15 +62,6 @@ public class ExonautRoomExtension extends SFSExtension {
         return null;
     }
 
-    private Object traceIt(ExoTraceArgs traceArgs) {
-        trace(traceArgs.level, traceArgs.args);
-        return null;
-    }
-
-    private ExoProps getProps() {
-        return exoProps;
-    }
-
     @Override
     public Object handleInternalMessage(String command, Object parameters) {
         switch (command) {
@@ -96,8 +71,6 @@ public class ExonautRoomExtension extends SFSExtension {
                 return getNextGrenadeId();
             case "getTimeLimit":
                 return getTimeLimit();
-            case "getWeapon":
-                return getWeapon((Integer) parameters);
             case "getItems":
                 return getItems();
             case "spawnBullet":
@@ -106,10 +79,6 @@ public class ExonautRoomExtension extends SFSExtension {
                 return spawnPlayer((Integer) parameters);
             case "handleSnipe":
                 return handleSnipe((ExoBullet) parameters);
-            case "trace":
-                return traceIt((ExoTraceArgs) parameters);
-            case "getProps":
-                return getProps();
             default:
                 throw new RuntimeException(
                         String.format("Invalid internal room message %s", command));

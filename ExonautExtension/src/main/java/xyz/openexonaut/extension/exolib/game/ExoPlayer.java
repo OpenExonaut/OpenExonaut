@@ -16,6 +16,7 @@ import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.evthandlers.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
+import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoPlayer extends ExoTickable {
@@ -211,7 +212,7 @@ public class ExoPlayer extends ExoTickable {
         // TODO: disjoint phantoms?
     }
 
-    public void hit(ExoBullet bullet, int where, ExoProps exoProps, ISFSArray eventQueue) {
+    public void hit(ExoBullet bullet, int where, ISFSArray eventQueue) {
         String avatarState = getAvatarState();
         if (avatarState.equals("captured") || avatarState.equals("invincible")) {
             return;
@@ -221,13 +222,13 @@ public class ExoPlayer extends ExoTickable {
 
         float damageModifier = 1f;
         if (headshot) {
-            damageModifier += exoProps.headshotMod;
+            damageModifier += ExoProps.getHeadshotMod();
         }
         if (getBoost() == ExoPickupEnum.boost_armor.id) {
-            damageModifier -= exoProps.boostArmorMod;
+            damageModifier -= ExoProps.getBoostArmorMod();
         }
         if (getTeamBoost() == ExoPickupEnum.boost_team_armor.id) {
-            damageModifier -= exoProps.boostTeamArmorMod;
+            damageModifier -= ExoProps.getBoostTeamArmorMod();
         }
 
         float health = getHealth();

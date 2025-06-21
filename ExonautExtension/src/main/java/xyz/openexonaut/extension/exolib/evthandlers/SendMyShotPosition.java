@@ -7,6 +7,7 @@ import com.smartfoxserver.v2.entities.data.*;
 
 import xyz.openexonaut.extension.exolib.data.*;
 import xyz.openexonaut.extension.exolib.game.*;
+import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class SendMyShotPosition {
@@ -36,10 +37,7 @@ public class SendMyShotPosition {
 
             args.bnum = nextBulletId.get();
 
-            ExoWeapon weapon =
-                    (ExoWeapon)
-                            room.getExtension()
-                                    .handleInternalMessage("getWeapon", player.getWeaponId());
+            ExoWeapon weapon = ExoGameData.getWeapon(player.getWeaponId());
             float range = weapon.Range;
             float velocity = weapon.Velocity;
             float damage = weapon.Damage;
@@ -65,10 +63,7 @@ public class SendMyShotPosition {
                                         damage,
                                         args.x,
                                         args.y,
-                                        player,
-                                        (ExoProps)
-                                                room.getExtension()
-                                                        .handleInternalMessage("getProps", null)));
+                                        player));
                 currentAngle -= args.inc;
             }
 

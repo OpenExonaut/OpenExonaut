@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.node.*;
 
 import xyz.openexonaut.extension.exolib.data.*;
 
-public class ExoGameData {
-    private final ExoWeapon[] weapons;
-    private final ExoMod[] mods;
-    private final ExoSuit[] suits;
+public final class ExoGameData {
+    private static ExoWeapon[] weapons;
+    private static ExoMod[] mods;
+    private static ExoSuit[] suits;
 
-    public ExoGameData(JsonNode json) {
+    private ExoGameData() {}
+
+    public static void init(JsonNode json) {
         ArrayNode weaponData = (ArrayNode) json.get("weapons");
         ArrayNode modData = (ArrayNode) json.get("mods");
         ArrayNode suitData = (ArrayNode) json.get("suits");
@@ -23,22 +25,22 @@ public class ExoGameData {
             weapons[i] = new ExoWeapon(weaponData.get(i));
         }
         for (int i = 0; i < mods.length; i++) {
-            mods[i] = new ExoMod(modData.get(i), this);
+            mods[i] = new ExoMod(modData.get(i));
         }
         for (int i = 0; i < suits.length; i++) {
-            suits[i] = new ExoSuit(suitData.get(i), this);
+            suits[i] = new ExoSuit(suitData.get(i));
         }
     }
 
-    public ExoWeapon getWeapon(int id) {
+    public static ExoWeapon getWeapon(int id) {
         return weapons[id - 1];
     }
 
-    public ExoMod getMod(int id) {
+    public static ExoMod getMod(int id) {
         return mods[id - 1];
     }
 
-    public ExoSuit getSuit(int id) {
+    public static ExoSuit getSuit(int id) {
         return suits[id - 1];
     }
 }

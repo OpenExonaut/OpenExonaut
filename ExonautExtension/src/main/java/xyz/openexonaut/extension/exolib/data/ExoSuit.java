@@ -14,9 +14,9 @@ public class ExoSuit {
     public final float Timer_Sp_Weps;
     public final float CoolDown_Sp_Weps;
 
-    public ExoSuit(JsonNode node, ExoGameData gameData) {
+    public ExoSuit(JsonNode node) {
         this.Name = node.get("Name").asText();
-        this.WeaponMod = gameData.getMod(node.get("WeaponMod").asInt());
+        this.WeaponMod = ExoGameData.getMod(node.get("WeaponMod").asInt());
         this.Health = (float) node.get("Health").asDouble();
         this.Regen_Speed = (float) node.get("Regen_Speed").asDouble();
         this.Regen_Delay = (float) node.get("Regen_Delay").asDouble();
