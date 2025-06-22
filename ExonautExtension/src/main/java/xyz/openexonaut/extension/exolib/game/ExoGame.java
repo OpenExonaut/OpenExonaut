@@ -163,10 +163,10 @@ public class ExoGame extends ExoTickable implements Runnable {
     }
 
     private class ExoPeek extends JPanel implements Runnable {
-        private final JFrame frame = new JFrame("ExoPeek");
-        private final Container canvas = frame.getContentPane();
+        public final JFrame frame = new JFrame("ExoPeek");
+        public final Container canvas = frame.getContentPane();
 
-        private ExoPeek() {
+        public ExoPeek() {
             setPreferredSize(new Dimension((int) world.map.size.x, (int) world.map.size.y));
             canvas.add(this);
             frame.pack();
