@@ -3,24 +3,28 @@ package xyz.openexonaut.extension.exolib.resources;
 import java.util.*;
 
 public final class ExoProps {
-    private static float headshotMod;
-    private static float boostDamageMod;
-    private static float boostTeamDamageMod;
-    private static float boostArmorMod;
-    private static float boostTeamArmorMod;
+    private static boolean inputDebug = false;
 
-    private static int soloTime;
-    private static int teamTime;
-    private static int queueWait;
-    private static int minPlayers;
+    private static float headshotMod = 0.25f;
+    private static float boostDamageMod = 0.2f;
+    private static float boostTeamDamageMod = 0.2f;
+    private static float boostArmorMod = 0.2f;
+    private static float boostTeamArmorMod = 0.2f;
 
-    private static int creditsParticipation;
-    private static int creditsPerHack;
-    private static int creditsWin;
+    private static int soloTime = 600;
+    private static int teamTime = 900;
+    private static int queueWait = 20;
+    private static int minPlayers = 4;
+
+    private static int creditsParticipation = 5;
+    private static int creditsPerHack = 5;
+    private static int creditsWin = 10;
 
     private ExoProps() {}
 
     public static void init(Properties props) {
+        inputDebug = Boolean.parseBoolean(props.getProperty("inputDebug"));
+
         headshotMod = Float.parseFloat(props.getProperty("headshotMod"));
         boostDamageMod = Float.parseFloat(props.getProperty("boostDamageMod"));
         boostTeamDamageMod = Float.parseFloat(props.getProperty("boostTeamDamageMod"));
@@ -35,6 +39,10 @@ public final class ExoProps {
         creditsParticipation = Integer.parseInt(props.getProperty("creditsParticipation"));
         creditsPerHack = Integer.parseInt(props.getProperty("creditsPerHack"));
         creditsWin = Integer.parseInt(props.getProperty("creditsWin"));
+    }
+
+    public static boolean getInputDebug() {
+        return inputDebug;
     }
 
     public static float getHeadshotMod() {

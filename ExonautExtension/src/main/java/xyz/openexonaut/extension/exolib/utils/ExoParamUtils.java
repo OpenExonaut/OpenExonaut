@@ -4,6 +4,8 @@ import java.lang.reflect.*;
 
 import com.smartfoxserver.v2.entities.data.*;
 
+import xyz.openexonaut.extension.exolib.resources.*;
+
 public final class ExoParamUtils {
     private ExoParamUtils() {}
 
@@ -19,7 +21,7 @@ public final class ExoParamUtils {
     }
 
     // behavior guaranteed consistent only if clazz has only one non-inherited constructor
-    // such constructors must use the primitive wrappers instead of primitives
+    // such constructors must be public and use the primitive wrappers instead of primitives
     public static <T> T deserialize(ISFSObject params, Class<T> clazz) {
         @SuppressWarnings("unchecked") // only needed because of Java array shenanigans
         Constructor<T> constructor = (Constructor<T>) clazz.getDeclaredConstructors()[0];
@@ -34,30 +36,35 @@ public final class ExoParamUtils {
 
             SFSDataWrapper wrapper = params.get(paramName);
             if (wrapper == null) {
-                throw new RuntimeException(String.format("param %s not found", paramName));
+                if (ExoProps.getInputDebug()) {
+                    throw new RuntimeException(String.format("param %s not found", paramName));
+                }
+                return null;
             }
 
             Object object = wrapper.getObject();
             if (object == null || paramType.isInstance(object)) {
                 values[i] = object;
             } else {
-                throw new RuntimeException(
-                        String.format(
-                                "param %s type (%s) not match %s",
-                                paramName, paramType, object.getClass()));
+                if (ExoProps.getInputDebug()) {
+                    throw new RuntimeException(
+                            String.format(
+                                    "param %s type (%s) not match %s",
+                                    paramName, paramType, object.getClass()));
+                }
+                return null;
             }
         }
 
         try {
             return constructor.newInstance(values);
         } catch (ReflectiveOperationException e) {
-            // should never happen
             throw new RuntimeException(e);
         }
     }
 
     // update if needing to handle additional field types. handles int, float
-    public static <T> ISFSObject serialize(T toSerialize, int playerId) {
+    public static ISFSObject serialize(Object toSerialize, int playerId) {
         ISFSObject serializedObject = new SFSObject();
 
         for (Field field : toSerialize.getClass().getDeclaredFields()) {
@@ -65,7 +72,6 @@ public final class ExoParamUtils {
             try {
                 value = field.get(toSerialize);
             } catch (ReflectiveOperationException e) {
-                // should never happen
                 throw new RuntimeException(e);
             }
 

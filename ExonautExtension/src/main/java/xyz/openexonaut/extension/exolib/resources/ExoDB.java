@@ -8,9 +8,9 @@ import com.smartfoxserver.bitswarm.sessions.*;
 import com.smartfoxserver.v2.*;
 
 public final class ExoDB {
-    private static MongoClient mongoClient;
-    private static MongoDatabase database;
-    private static MongoCollection<Document> userCollection;
+    private static MongoClient mongoClient = null;
+    private static MongoDatabase database = null;
+    private static MongoCollection<Document> userCollection = null;
 
     private ExoDB() {}
 

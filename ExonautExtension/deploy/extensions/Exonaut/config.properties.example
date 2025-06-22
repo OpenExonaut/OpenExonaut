@@ -11,9 +11,14 @@ httpURI=http://127.0.0.1:80
 debugGFX=true
 
 # Scale the room graphical debug window and graphics by this factor.
-# Irrelevant if debugGFX is false.
+# Irrelevant if debugGFX is false, disables room graphical debug if set to 0 or less.
 # Float
 debugGFXScale=1
+
+# Whether to throw runtime exceptions for invalid user input.
+# If false, invalid user input is silently ignored.
+# Boolean
+inputDebug=true
 
 # Number of non-tutorial maps.
 # When making custom map definitions, set the first multiplayer map to world_1,

@@ -312,8 +312,8 @@ public class ExoWorld extends ExoTickable {
     }
 
     private class ExoUserData {
-        private final int id;
-        private final int part;
+        public final int id;
+        public final int part;
 
         private ExoUserData(int id, int part) {
             this.id = id;

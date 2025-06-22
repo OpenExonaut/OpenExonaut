@@ -42,7 +42,7 @@ public class ExonautZoneExtension extends SFSExtension {
                 Paths.get(getCurrentFolder(), "worlds"),
                 Integer.parseInt(props.getProperty("mapCount")),
                 Boolean.parseBoolean(props.getProperty("debugGFX"))
-                        ? Float.parseFloat(props.getProperty("debugGFXScale"))
+                        ? Math.max(0f, Float.parseFloat(props.getProperty("debugGFXScale")))
                         : 0f);
 
         addRequestHandler("findRoom", FindRoomReqHandler.class);

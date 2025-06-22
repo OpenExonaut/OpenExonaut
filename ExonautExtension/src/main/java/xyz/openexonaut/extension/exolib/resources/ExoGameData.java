@@ -6,9 +6,9 @@ import com.fasterxml.jackson.databind.node.*;
 import xyz.openexonaut.extension.exolib.data.*;
 
 public final class ExoGameData {
-    private static ExoWeapon[] weapons;
-    private static ExoMod[] mods;
-    private static ExoSuit[] suits;
+    private static ExoWeapon[] weapons = new ExoWeapon[0];
+    private static ExoMod[] mods = new ExoMod[0];
+    private static ExoSuit[] suits = new ExoSuit[0];
 
     private ExoGameData() {}
 
