@@ -19,7 +19,6 @@ public class ExonautRoomExtension extends SFSExtension {
         game = new ExoGame(getParentRoom());
 
         addEventHandler(SFSEventType.USER_JOIN_ROOM, UserJoinRoomHandler.class);
-        addEventHandler(SFSEventType.USER_VARIABLES_UPDATE, UserVariableUpdateHandler.class);
 
         addRequestHandler("evt", EvtHandler.class);
         addRequestHandler("gef", GefHandler.class);
@@ -28,7 +27,9 @@ public class ExonautRoomExtension extends SFSExtension {
 
     @Override
     public void destroy() {
-        game.destroy();
+        if (game != null) {
+            game.destroy();
+        }
         super.destroy();
     }
 
@@ -45,11 +46,11 @@ public class ExonautRoomExtension extends SFSExtension {
     }
 
     private ExoItem[] getItems() {
-        return game.world.items;
+        return game.getWorld().items;
     }
 
     private boolean spawnBullet(ExoBullet bullet) {
-        return game.world.spawnBullet(bullet);
+        return game.getWorld().spawnBullet(bullet);
     }
 
     private Object spawnPlayer(int id) {
@@ -58,7 +59,7 @@ public class ExonautRoomExtension extends SFSExtension {
     }
 
     private Object handleSnipe(ExoBullet bullet) {
-        game.world.handleSnipe(bullet);
+        game.getWorld().handleSnipe(bullet);
         return null;
     }
 

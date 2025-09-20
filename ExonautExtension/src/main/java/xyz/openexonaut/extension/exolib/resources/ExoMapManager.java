@@ -44,13 +44,12 @@ public final class ExoMapManager {
     }
 
     public static void destroy() {
-        if (maps != null) {
-            for (ExoMap map : maps) {
-                if (map != null) {
-                    map.destroy();
-                }
+        for (ExoMap map : maps) {
+            if (map != null) {
+                map.destroy();
             }
         }
+        maps = new ExoMap[0];
     }
 
     private static ExoMap load(Path path, float debugGFXScale) {
@@ -78,6 +77,7 @@ public final class ExoMapManager {
                     new Vector2(segments[i].vertexTwo.x, segments[i].vertexTwo.y));
             wallFixtureDefs[i] = new FixtureDef();
             wallFixtureDefs[i].shape = shape;
+            wallFixtureDefs[i].filter.categoryBits = (short) 0xffff;
         }
 
         BufferedImage image = null;
