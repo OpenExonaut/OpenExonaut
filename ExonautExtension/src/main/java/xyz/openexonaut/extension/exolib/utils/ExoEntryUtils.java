@@ -16,6 +16,29 @@ import xyz.openexonaut.extension.exolib.game.*;
 import xyz.openexonaut.extension.exolib.resources.*;
 
 public final class ExoEntryUtils {
+    public static final List<RoomVariable> initialRoomVars =
+            List.of(
+                    new SFSRoomVariable("state", "wait_for_min_players"),
+                    new SFSRoomVariable("hackLimit", (int) 20),
+                    new SFSRoomVariable("time", (int) 0));
+    public static final List<UserVariable> initialUserVars =
+            List.of(
+                    new SFSUserVariable("clientState", "ready"),
+                    new SFSUserVariable("avatarState", "halted"),
+                    new SFSUserVariable("hacks", (int) 0),
+                    new SFSUserVariable("capturedMethod", (int) 0),
+                    new SFSUserVariable("capturedBy", (int) 0),
+                    new SFSUserVariable("pickingup", true),
+                    new SFSUserVariable("boost", (int) 0),
+                    new SFSUserVariable("teamBoost", (int) 0),
+                    new SFSUserVariable("x", (double) 0.0),
+                    new SFSUserVariable("y", (double) 0.0),
+                    new SFSUserVariable("armAngle", (double) 0.0),
+                    new SFSUserVariable("faceTargetDir", (double) 0.0),
+                    new SFSUserVariable("inactive", false),
+                    new SFSUserVariable("moveState", (int) 0),
+                    new SFSUserVariable("moveDir", (int) 0));
+
     private ExoEntryUtils() {}
 
     // return value: success
@@ -49,7 +72,7 @@ public final class ExoEntryUtils {
         if (tegid.equals("")) {
             displayName = user.getName();
         } else {
-            level = ExoDB.getPlayerObject(tegid).getInteger("Level");
+            level = ExoDB.getPlayerLevel(tegid);
         }
 
         SmartFoxServer.getInstance()
@@ -82,22 +105,9 @@ public final class ExoEntryUtils {
         // suitId is provided
         // weaponId is provided
         // xp is provided
-        ensureVariable(sender, userVars, "clientState", "ready");
-        ensureVariable(sender, userVars, "avatarState", "halted");
-        ensureVariable(sender, userVars, "hacks", (int) 0);
-        ensureVariable(sender, userVars, "capturedMethod", (int) 0);
-        ensureVariable(sender, userVars, "capturedBy", (int) 0);
-        ensureVariable(sender, userVars, "pickingup", true);
-        ensureVariable(sender, userVars, "boost", (int) 0);
-        ensureVariable(sender, userVars, "teamBoost", (int) 0);
-        ensureVariable(sender, userVars, "x", (double) 0.0);
-        ensureVariable(sender, userVars, "y", (double) 0.0);
-        ensureVariable(sender, userVars, "health", (double) suit.Health);
-        ensureVariable(sender, userVars, "armAngle", (double) 0.0);
-        ensureVariable(sender, userVars, "faceTargetDir", (double) 0.0);
-        ensureVariable(sender, userVars, "inactive", false);
-        ensureVariable(sender, userVars, "moveState", (int) 0);
-        ensureVariable(sender, userVars, "moveDir", (int) 0);
+
+        userVars.addAll(initialUserVars);
+        userVars.add(new SFSUserVariable("health", (double) suit.Health));
 
         if (userVars.size() > 0) {
             sfsApi.setUserVariables(sender, userVars);
@@ -115,11 +125,9 @@ public final class ExoEntryUtils {
         roomSettings.setGame(true);
 
         // "stop" is used existentially
-        roomVars.add(new SFSRoomVariable("state", "wait_for_min_players"));
+        roomVars.addAll(initialRoomVars);
         roomVars.add(new SFSRoomVariable("mapId", mapId));
         roomVars.add(new SFSRoomVariable("lastMapLoadedId", mapId));
-        roomVars.add(new SFSRoomVariable("hackLimit", (int) 20));
-        roomVars.add(new SFSRoomVariable("time", (int) 0));
 
         if (modeParam.equals("team")) {
             roomSettings.setName(String.format("team_%d", System.currentTimeMillis()));
@@ -147,12 +155,5 @@ public final class ExoEntryUtils {
         ISFSObject responseParams = new SFSObject();
         responseParams.putUtfString("roomName", sender.getLastJoinedRoom().getName());
         zone.getExtension().send("findRoom", responseParams, sender);
-    }
-
-    private static void ensureVariable(
-            User user, List<UserVariable> variables, String id, Object defaultValue) {
-        if (!user.containsVariable(id)) {
-            variables.add(new SFSUserVariable(id, defaultValue));
-        }
     }
 }

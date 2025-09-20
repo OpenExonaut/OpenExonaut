@@ -4,6 +4,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.function.*;
 
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.physics.box2d.*;
@@ -12,6 +13,7 @@ import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.data.*;
 
 import xyz.openexonaut.extension.exolib.map.*;
+import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoWorld extends ExoTickable {
@@ -20,13 +22,7 @@ public class ExoWorld extends ExoTickable {
 
     private final Room room;
 
-    private final World world = new World(new Vector2(0f, -100f), true);
-
-    private final FixtureDef playerHeadDef = new FixtureDef();
-    private final FixtureDef playerBodyDef = new FixtureDef();
-    private final FixtureDef playerFeetDef = new FixtureDef();
-
-    private final BodyDef playerDef = new BodyDef();
+    private World world = new World(new Vector2(0f, -100f), true);
 
     // this "efficiently" handles concurrency automagically; the copy-on-write arraylist is probably
     // slower given the volatility
@@ -40,29 +36,10 @@ public class ExoWorld extends ExoTickable {
         this.map = map;
         this.room = room;
 
-        BodyDef wallDef = new BodyDef();
-        wallDef.awake = false;
-        playerDef.fixedRotation = true;
-
-        Body walls = world.createBody(wallDef);
+        Body walls = world.createBody(ExoDefs.wallDef);
         for (FixtureDef wall : map.wallFixtureDefs) {
             walls.createFixture(wall).setUserData(new ExoUserData(0, 0));
         }
-
-        CircleShape head = new CircleShape();
-        head.setPosition(new Vector2(0f, 11.5f));
-        head.setRadius(1.5f);
-
-        PolygonShape body = new PolygonShape();
-        body.setAsBox(1.5f, 5f, new Vector2(0f, 6.5f), 0f);
-
-        CircleShape feet = new CircleShape();
-        feet.setPosition(new Vector2(0f, 1.5f));
-        feet.setRadius(1.5f);
-
-        playerHeadDef.shape = head;
-        playerBodyDef.shape = body;
-        playerFeetDef.shape = feet;
 
         if (!map.finalized()) {
             for (ExoItemSpawner spawner : map.teamItemSpawns) {
@@ -88,11 +65,8 @@ public class ExoWorld extends ExoTickable {
     }
 
     public void destroy() {
-        playerHeadDef.shape.dispose();
-        playerBodyDef.shape.dispose();
-        playerFeetDef.shape.dispose();
-
         world.dispose();
+        world = null;
     }
 
     private void finalizeItemSpawner(ExoItemSpawner spawner) {
@@ -105,12 +79,13 @@ public class ExoWorld extends ExoTickable {
 
     public void spawnPlayer(int id) {
         ExoPlayer player = (ExoPlayer) room.getPlayersList().get(id - 1).getProperty("ExoPlayer");
-        playerDef.position.set(player.getX(), player.getY());
+        ExoDefs.playerDef.position.set(player.getX(), player.getY());
+        ExoDefs.setFilters(ExoFilterUtils.getPlayerCategory(id), ExoFilterUtils.getPlayerMask(id));
 
-        Body newPlayerBody = world.createBody(playerDef);
-        newPlayerBody.createFixture(playerHeadDef).setUserData(new ExoUserData(id, 1));
-        newPlayerBody.createFixture(playerBodyDef).setUserData(new ExoUserData(id, 2));
-        newPlayerBody.createFixture(playerFeetDef).setUserData(new ExoUserData(id, 3));
+        Body newPlayerBody = world.createBody(ExoDefs.playerDef);
+        newPlayerBody.createFixture(ExoDefs.standingHeadDef).setUserData(new ExoUserData(id, 1));
+        newPlayerBody.createFixture(ExoDefs.standingBodyDef).setUserData(new ExoUserData(id, 2));
+        newPlayerBody.createFixture(ExoDefs.standingFeetDef).setUserData(new ExoUserData(id, 3));
         player.setBody(newPlayerBody);
     }
 
@@ -233,38 +208,9 @@ public class ExoWorld extends ExoTickable {
 
     private ExoUserData bulletRaycast(
             float startX, float startY, float endX, float endY, int shooterID) {
-        final class RaycastHandler implements RayCastCallback {
-            private ExoUserData result = null;
-            private float raycastFraction = 2f;
-            private boolean backcast = false;
+        ExoRaycastHandler raycastHandler =
+                new ExoRaycastHandler(exoUserData -> exoUserData.id != shooterID);
 
-            @Override
-            public float reportRayFixture(
-                    Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
-                if (backcast) {
-                    float currentFraction = 1f - fraction;
-                    if (currentFraction < raycastFraction) {
-                        ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
-                        if (exoUserData.id != shooterID) {
-                            result = exoUserData;
-                            raycastFraction = currentFraction;
-                        }
-                    }
-                } else {
-                    ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
-                    if (exoUserData.id != shooterID) {
-                        result = exoUserData;
-                        raycastFraction = fraction;
-                        return fraction;
-                    }
-                }
-                return 1f;
-            }
-        }
-
-        RaycastHandler raycastHandler = new RaycastHandler();
-
-        raycastHandler.backcast = false;
         world.rayCast(raycastHandler, startX, startY, endX, endY);
 
         raycastHandler.backcast = true;
@@ -274,35 +220,9 @@ public class ExoWorld extends ExoTickable {
     }
 
     private float pickupSpawnerRaycast(float startX, float startY) {
-        final class RaycastHandler implements RayCastCallback {
-            private float raycastFraction = 1f;
-            private boolean backcast = false;
+        ExoRaycastHandler raycastHandler =
+                new ExoRaycastHandler(exoUserData -> exoUserData.id == 0);
 
-            @Override
-            public float reportRayFixture(
-                    Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
-                if (backcast) {
-                    float currentFraction = 1f - fraction;
-                    if (currentFraction < raycastFraction) {
-                        ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
-                        if (exoUserData.id == 0) {
-                            raycastFraction = currentFraction;
-                        }
-                    }
-                } else {
-                    ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
-                    if (exoUserData.id == 0) {
-                        raycastFraction = fraction;
-                        return fraction;
-                    }
-                }
-                return 1f;
-            }
-        }
-
-        RaycastHandler raycastHandler = new RaycastHandler();
-
-        raycastHandler.backcast = false;
         world.rayCast(raycastHandler, startX, startY, startX, startY - 12f);
 
         raycastHandler.backcast = true;
@@ -311,7 +231,42 @@ public class ExoWorld extends ExoTickable {
         return raycastHandler.raycastFraction * 12f;
     }
 
-    private class ExoUserData {
+    private static class ExoRaycastHandler implements RayCastCallback {
+        public final Predicate<ExoUserData> test;
+
+        public ExoUserData result = null;
+        public float raycastFraction = 1f;
+        public boolean backcast = false;
+
+        public ExoRaycastHandler(Predicate<ExoUserData> test) {
+            this.test = test;
+        }
+
+        @Override
+        public float reportRayFixture(
+                Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
+            if (backcast) {
+                float currentFraction = 1f - fraction;
+                if (currentFraction < raycastFraction) {
+                    ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
+                    if (test.test(exoUserData)) {
+                        result = exoUserData;
+                        raycastFraction = currentFraction;
+                    }
+                }
+            } else {
+                ExoUserData exoUserData = (ExoUserData) fixture.getUserData();
+                if (test.test(exoUserData)) {
+                    result = exoUserData;
+                    raycastFraction = fraction;
+                    return fraction;
+                }
+            }
+            return 1f;
+        }
+    }
+
+    private static class ExoUserData {
         public final int id;
         public final int part;
 

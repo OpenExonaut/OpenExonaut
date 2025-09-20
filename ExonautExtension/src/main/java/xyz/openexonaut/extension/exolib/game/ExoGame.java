@@ -18,7 +18,6 @@ import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoGame extends ExoTickable implements Runnable {
-    public final ExoWorld world;
     public final int timeLimit;
 
     public final AtomicInteger nextBulletId = new AtomicInteger(1);
@@ -28,8 +27,9 @@ public class ExoGame extends ExoTickable implements Runnable {
     private final TaskScheduler scheduler;
 
     private float queueTime;
-    private float gameTime = 0f;
+    private float gameTime;
     private ExoPeek peek = null;
+    private ExoWorld world = null;
 
     private ScheduledFuture<?> gameHandle = null;
     private ScheduledFuture<?> peekHandle = null;
@@ -38,14 +38,47 @@ public class ExoGame extends ExoTickable implements Runnable {
         this.room = room;
         this.scheduler = SmartFoxServer.getInstance().getTaskScheduler();
 
-        world = new ExoWorld(ExoMapManager.getMap(room.getVariable("mapId").getIntValue()), room);
-
-        queueTime = ExoProps.getQueueWait();
-
         timeLimit =
                 room.getVariable("mode").getStringValue().equals("team")
                         ? ExoProps.getTeamTime()
                         : ExoProps.getSoloTime();
+
+        init();
+    }
+
+    public void init() {
+        queueTime = ExoProps.getQueueWait();
+        gameTime = 0f;
+
+        boolean reinit = room.containsVariable("stop");
+
+        if (reinit) {
+            destroy();
+
+            List<RoomVariable> roomVars = new ArrayList<>(ExoEntryUtils.initialRoomVars);
+            roomVars.add(new SFSRoomVariable("stop", null)); // delete variable
+            setVariables(roomVars);
+
+            for (User u : room.getPlayersList()) {
+                ExoPlayer player = (ExoPlayer) u.getProperty("ExoPlayer");
+
+                List<UserVariable> userVars = new ArrayList<>(ExoEntryUtils.initialUserVars);
+                userVars.add(new SFSUserVariable("health", player.getSuit().Health));
+                player.setVariables(userVars);
+
+                player.reset();
+            }
+
+            queueTime += 10f;
+        }
+
+        world = new ExoWorld(ExoMapManager.getMap(room.getVariable("mapId").getIntValue()), room);
+
+        if (reinit) {
+            for (User u : room.getPlayersList()) {
+                spawnPlayer(u.getPlayerId());
+            }
+        }
     }
 
     public void destroy() {
@@ -63,6 +96,7 @@ public class ExoGame extends ExoTickable implements Runnable {
         }
         if (world != null) {
             world.destroy();
+            world = null;
         }
     }
 
@@ -79,8 +113,12 @@ public class ExoGame extends ExoTickable implements Runnable {
         }
     }
 
-    // TODO: hook into actual functionality
-    public void creditsXPRewardSolo() {
+    public void stop(String reason) {
+        setVariables(
+                List.of(
+                        new SFSRoomVariable("stop", reason),
+                        new SFSRoomVariable("state", "stopped")));
+
         List<User> sortedUsers = new ArrayList<>(room.getPlayersList());
         Collections.sort(
                 sortedUsers,
@@ -91,18 +129,77 @@ public class ExoGame extends ExoTickable implements Runnable {
                                                 .getHacks())); // sort by descending hacks
         int mostHacks = ((ExoPlayer) sortedUsers.get(0).getProperty("ExoPlayer")).getHacks();
 
-        int[] award = new int[sortedUsers.size()]; // indexed by unsorted ids
+        ISFSObject sendSummaryParams = new SFSObject();
+
+        int banzaiTotal = 0;
+        int atlasTotal = 0;
         for (User user : sortedUsers) {
             if (user != null) {
-                int id = user.getPlayerId() - 1;
-                int hacks = ((ExoPlayer) user.getProperty("ExoPlayer")).getHacks();
-                award[id] = ExoProps.getCreditsParticipation(); // participation
-                award[id] += hacks * ExoProps.getCreditsPerHack(); // hacks
-                if (hacks == mostHacks) {
-                    award[id] += ExoProps.getCreditsWin(); // winning
+                ISFSObject userSummary = new SFSObject();
+
+                String tegID = (String) user.getProperty("tegid");
+                ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
+                int hacks = player.getHacks();
+
+                userSummary.putInt("nCaps", hacks);
+                userSummary.putInt("nFalls", player.getCrashes());
+                userSummary.putInt("nSaves", 0); // UNUSED: does nothing, don't know what it is
+
+                if (user.getVariable("faction").getStringValue().equals("banzai")) {
+                    banzaiTotal += hacks;
+                } else {
+                    atlasTotal += hacks;
                 }
+
+                int award = 0;
+                award = ExoProps.getCreditsParticipation(); // participation
+                award += hacks * ExoProps.getCreditsPerHack(); // hacks
+                if (hacks == mostHacks) {
+                    // TODO: team winning condition
+                    award += ExoProps.getCreditsWin(); // winning
+                }
+
+                // TODO: event award modifiers
+
+                if (!tegID.equals("")) {
+                    ExoDB.ExoPlayerDBUpdateOutput playerDBUpdate =
+                            ExoDB.endOfMatchPlayerUpdate(
+                                    tegID,
+                                    new ExoDB.ExoPlayerDBUpdateInput(
+                                            award, user.getVariable("suitId").getIntValue()));
+
+                    userSummary.putInt("level", playerDBUpdate.level);
+                    userSummary.putInt("totalXP", playerDBUpdate.xp);
+                    userSummary.putInt("totalCred", playerDBUpdate.credits);
+                    userSummary.putInt("battleXP", award);
+                    userSummary.putInt("battleCred", award);
+                    // TODO "Missions": fed into updateCompletedMissions
+                    userSummary.putSFSObject("Missions", new SFSObject());
+                } else {
+                    userSummary.putInt("level", 1);
+                    userSummary.putInt("totalXP", 0);
+                    userSummary.putInt("totalCred", 0);
+                    userSummary.putInt("battleXP", award); // seen in videos as being non-zero
+                    userSummary.putInt("battleCred", 0);
+                    userSummary.putSFSObject("Missions", new SFSObject());
+                }
+
+                sendSummaryParams.putSFSObject(String.valueOf(user.getPlayerId()), userSummary);
             }
         }
+
+        sendSummaryParams.putInt("BanzaiTotal", banzaiTotal);
+        sendSummaryParams.putInt("AtlasTotal", atlasTotal);
+
+        int mapId = (int) (Math.random() * ExoMapManager.getMapCount()) + 1;
+        setVariables(
+                List.of(
+                        new SFSRoomVariable("mapId", mapId),
+                        new SFSRoomVariable("lastMapLoadedId", mapId)));
+
+        room.getExtension().send("sendSummary", sendSummaryParams, room.getPlayersList());
+
+        queueTime = -10f;
     }
 
     @Override
@@ -130,7 +227,7 @@ public class ExoGame extends ExoTickable implements Runnable {
                 timerUpdate.putInt("queueTime", (int) ceiledQueueTime);
                 room.getExtension().send("queueTime", timerUpdate, room.getPlayersList());
             }
-        } else {
+        } else if (!room.containsVariable("stop")) {
             double oldGameTime = Math.floor(gameTime);
             gameTime += deltaTime;
             double flooredGameTime = Math.floor(gameTime);
@@ -141,8 +238,29 @@ public class ExoGame extends ExoTickable implements Runnable {
 
             world.tick(eventQueue);
 
-            // TODO: end match if time > timeLimit
-            // TODO: end match if capture limit, for that matter
+            if (flooredGameTime > (double) timeLimit) {
+                stop("timeout");
+            } else if (room.getPlayersList().size() < ExoProps.getMinPlayers()) {
+                stop("playersleft");
+            } // TODO: team termination circumstances
+            else {
+                boolean maxedCaptures = false;
+                for (User user : room.getPlayersList()) {
+                    if (((ExoPlayer) user.getProperty("ExoPlayer")).getHacks() >= 20) {
+                        maxedCaptures = true;
+                        break;
+                    }
+                }
+                if (maxedCaptures) {
+                    stop("capturelimit");
+                }
+            }
+        } else {
+            queueTime += deltaTime;
+
+            if (queueTime >= 0f) {
+                init();
+            }
         }
 
         return deltaTime;
@@ -160,6 +278,10 @@ public class ExoGame extends ExoTickable implements Runnable {
                 .getAPIManager()
                 .getSFSApi()
                 .setRoomVariables(null, room, variables);
+    }
+
+    public ExoWorld getWorld() {
+        return world;
     }
 
     private class ExoPeek extends JPanel implements Runnable {

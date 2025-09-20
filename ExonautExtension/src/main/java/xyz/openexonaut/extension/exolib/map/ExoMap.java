@@ -55,6 +55,7 @@ public class ExoMap {
     public void destroy() {
         for (FixtureDef wallFixtureDef : wallFixtureDefs) {
             wallFixtureDef.shape.dispose();
+            wallFixtureDef.shape = null;
         }
     }
 

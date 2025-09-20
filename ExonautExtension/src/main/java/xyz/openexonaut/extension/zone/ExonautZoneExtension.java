@@ -44,6 +44,7 @@ public class ExonautZoneExtension extends SFSExtension {
                 Boolean.parseBoolean(props.getProperty("debugGFX"))
                         ? Math.max(0f, Float.parseFloat(props.getProperty("debugGFXScale")))
                         : 0f);
+        ExoDefs.init();
 
         addRequestHandler("findRoom", FindRoomReqHandler.class);
 
@@ -57,6 +58,7 @@ public class ExonautZoneExtension extends SFSExtension {
     public void destroy() {
         ExoMapManager.destroy();
         ExoDB.destroy();
+        ExoDefs.destroy();
         super.destroy();
     }
 }

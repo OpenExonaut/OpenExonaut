@@ -24,20 +24,16 @@ public class ExoPlayer extends ExoTickable {
 
     private ExoSuit suit = null;
 
-    private float crashTimer = 5f;
-    private float invicibilityTimer = 0f;
-    private float healthRefillTimer = 0f;
-    private float boostTimer = 0f;
-    private float teamBoostTimer = 0f;
+    private float crashTimer;
+    private float invincibilityTimer;
+    private float healthRefillTimer;
+    private float boostTimer;
+    private float teamBoostTimer;
 
+    private int crashes;
     // TODO: achievement/performance metrics
     @SuppressWarnings("unused")
-    private int crashes = 0,
-            fuelConsumed = 0,
-            hacksInvisible = 0,
-            hacksSpeed = 0,
-            hacksDamageBoost = 0,
-            hacksArmorBoost = 0;
+    private int fuelConsumed, hacksInvisible, hacksSpeed, hacksDamageBoost, hacksArmorBoost;
 
     private Body body = null;
 
@@ -47,6 +43,22 @@ public class ExoPlayer extends ExoTickable {
 
     public ExoPlayer(User user) {
         this.user = user;
+        reset();
+    }
+
+    public void reset() {
+        crashTimer = 5f;
+        invincibilityTimer = 0f;
+        healthRefillTimer = 0f;
+        boostTimer = 0f;
+        teamBoostTimer = 0f;
+
+        crashes = 0;
+        fuelConsumed = 0;
+        hacksInvisible = 0;
+        hacksSpeed = 0;
+        hacksDamageBoost = 0;
+        hacksArmorBoost = 0;
     }
 
     public String getClientState() {
@@ -101,18 +113,8 @@ public class ExoPlayer extends ExoTickable {
         return body;
     }
 
-    @SuppressWarnings("rawtypes") // SFS2X gives a raw list
-    public void updateVariables(List changedVariables) {
-        for (Object o : changedVariables) {
-            UserVariable var = (UserVariable) o;
-            if (var.getName().equals("clientState")) {
-                // fixes spawning across games to do this instead of having avatarState captured
-                // from the beginning
-                if (var.getStringValue().equals("playing")) {
-                    setVariables(List.of(new SFSUserVariable("avatarState", "captured")));
-                }
-            }
-        }
+    public int getCrashes() {
+        return crashes;
     }
 
     public void setSuit(ExoSuit suit) {
@@ -134,15 +136,24 @@ public class ExoPlayer extends ExoTickable {
         List<UserVariable> variableChanges = new ArrayList<>();
 
         if (getClientState().equals("playing")) {
-            if (getAvatarState().equals("captured")) {
+            if (getAvatarState().equals("captured") || getAvatarState().equals("halted")) {
                 crashTimer -= deltaTime;
                 if (crashTimer <= 0f) {
-                    invicibilityTimer = 3f + crashTimer;
-                    variableChanges.add(new SFSUserVariable("avatarState", "invincible"));
+                    invincibilityTimer = 3f + crashTimer;
+                    if (invincibilityTimer <= 0f) {
+                        variableChanges.add(new SFSUserVariable("avatarState", "normal"));
+                    } else {
+                        variableChanges.add(new SFSUserVariable("avatarState", "invincible"));
+                    }
+                } else if (getAvatarState().equals("halted")) {
+                    // fixes spawning across games to do this instead of having avatarState captured
+                    // from the beginning
+                    variableChanges.add(new SFSUserVariable("avatarState", "captured"));
                 }
-            } else if (getAvatarState().equals("invincible")) {
-                invicibilityTimer -= deltaTime;
-                if (invicibilityTimer <= 0f) {
+            }
+            if (getAvatarState().equals("invincible")) {
+                invincibilityTimer -= deltaTime;
+                if (invincibilityTimer <= 0f) {
                     variableChanges.add(new SFSUserVariable("avatarState", "normal"));
                 }
             }
@@ -188,24 +199,24 @@ public class ExoPlayer extends ExoTickable {
     }
 
     public void draw(Graphics g, ExoMap map) {
-        float cachedX = getX();
-        float cachedY = getY();
+        float centerX = getX();
+        float centerY = getY() + ExoDefs.radius + ExoDefs.standingHalfHeight;
 
         ExoDrawUtils.fillCapsule(
                 g,
                 Color.GREEN,
                 Color.BLUE,
                 Color.BLUE,
-                cachedX,
-                cachedY + 6.5f,
-                1.5f,
-                10f,
+                centerX,
+                centerY,
+                ExoDefs.radius,
+                ExoDefs.standingHalfHeight * 2f,
                 map.scale);
 
         // the center of the character collider in the game is set to y = 6f, despite the total
         // height being 13f. hope that's not too important
         ExoInt2DVector drawCenter =
-                new Exo2DVector(cachedX, cachedY + 6.5f).convertNativeToDraw(map.scale);
+                new Exo2DVector(centerX, centerY).convertNativeToDraw(map.scale);
         g.setColor(Color.RED);
         g.drawLine(drawCenter.x, drawCenter.y, drawCenter.x, drawCenter.y);
 
@@ -213,8 +224,7 @@ public class ExoPlayer extends ExoTickable {
     }
 
     public void hit(ExoBullet bullet, int where, ISFSArray eventQueue) {
-        String avatarState = getAvatarState();
-        if (avatarState.equals("captured") || avatarState.equals("invincible")) {
+        if (!getAvatarState().equals("normal")) {
             return;
         }
 
@@ -318,7 +328,7 @@ public class ExoPlayer extends ExoTickable {
         setVariables(List.of(new SFSUserVariable("teamBoost", (Integer) type)));
     }
 
-    private void setVariables(List<UserVariable> variables) {
+    public void setVariables(List<UserVariable> variables) {
         SmartFoxServer.getInstance().getAPIManager().getSFSApi().setUserVariables(user, variables);
     }
 }
