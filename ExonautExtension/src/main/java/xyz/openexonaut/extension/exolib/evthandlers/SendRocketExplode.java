@@ -24,7 +24,9 @@ public class SendRocketExplode {
         if (args == null) {
             ErrorReceipt.handle(room, player, params, evtName);
         } else {
-            // TODO: explosives
+            // note: this is not sent when a rocket hits a player; we do that ourselves
+
+            room.getExtension().handleInternalMessage("explodeRocket", args);
 
             ExoSendUtils.sendEventObjectToAll(
                     room, ExoParamUtils.serialize(args, player.user.getPlayerId()));

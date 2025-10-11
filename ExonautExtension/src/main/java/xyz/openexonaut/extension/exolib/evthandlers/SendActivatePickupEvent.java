@@ -24,12 +24,7 @@ public class SendActivatePickupEvent {
 
         this.pType =
                 pType == ExoPickupEnum.boost_random.id
-                        ? (int)
-                                        (Math.random()
-                                                * (ExoPickupEnum.boost_speed.id
-                                                        - ExoPickupEnum.boost_armor.id
-                                                        + 1))
-                                + ExoPickupEnum.boost_armor.id
+                        ? ExoPickupEnum.getRandomIndividualPickup()
                         : pType;
     }
 
@@ -46,11 +41,9 @@ public class SendActivatePickupEvent {
 
             items[args.pIdx].grabbed(tickArray);
 
-            if (args.pType >= ExoPickupEnum.boost_armor.id
-                    && args.pType <= ExoPickupEnum.boost_speed.id) {
+            if (ExoPickupEnum.isIndividualBoost(args.pType)) {
                 player.setBoost(args.pType, args.eTime, tickArray);
-            } else if (args.pType >= ExoPickupEnum.boost_team_armor.id
-                    && args.pType <= ExoPickupEnum.boost_team_speed.id) {
+            } else if (ExoPickupEnum.isTeamBoost(args.pType)) {
                 // TODO: set pickup for whole team
                 player.setTeamBoost(args.pType, args.eTime, tickArray);
             }

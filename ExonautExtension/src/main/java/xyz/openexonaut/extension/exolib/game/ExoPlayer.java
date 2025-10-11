@@ -223,14 +223,40 @@ public class ExoPlayer extends ExoTickable {
         // TODO: disjoint phantoms?
     }
 
-    public void hit(ExoBullet bullet, int where, ISFSArray eventQueue) {
+    public void bulletHit(ExoBullet bullet, int where, ISFSArray eventQueue) {
+        hit(
+                bullet.player,
+                bullet.num,
+                bullet.weaponId,
+                bullet.damage,
+                bullet.damageModifier,
+                where == 1,
+                eventQueue);
+    }
+
+    public void blastHit(
+            ExoPlayer sender,
+            int weaponId,
+            float damage,
+            float damageModifier,
+            boolean headshot,
+            ISFSArray eventQueue) {
+        hit(sender, -1, weaponId, damage, damageModifier, headshot, eventQueue);
+    }
+
+    private void hit(
+            ExoPlayer sender,
+            int bnum,
+            int weaponId,
+            float damage,
+            float damageModifierAttackOnly,
+            boolean headshot,
+            ISFSArray eventQueue) {
         if (!getAvatarState().equals("normal")) {
             return;
         }
 
-        boolean headshot = where == 1;
-
-        float damageModifier = 1f;
+        float damageModifier = damageModifierAttackOnly;
         if (headshot) {
             damageModifier += ExoProps.getHeadshotMod();
         }
@@ -242,33 +268,32 @@ public class ExoPlayer extends ExoTickable {
         }
 
         float health = getHealth();
-        health -= bullet.damage * damageModifier;
+        health -= damage * damageModifier;
 
         if (health <= 0f) {
             eventQueue.addSFSObject(
                     ExoParamUtils.serialize(
-                            new SendCaptured(bullet.num, bullet.player.user.getPlayerId() - 1),
+                            new SendCaptured(bnum, sender.user.getPlayerId() - 1),
                             user.getPlayerId() - 1));
 
             crashes++;
-            bullet.player.addHack(bullet);
+            sender.addHack(damageModifierAttackOnly);
             health = suit.Health;
             crashTimer = 8f;
 
             setVariables(
                     List.of(
-                            new SFSUserVariable("capturedMethod", (Integer) bullet.weaponId),
-                            new SFSUserVariable(
-                                    "capturedBy", (Integer) bullet.player.user.getPlayerId()),
+                            new SFSUserVariable("capturedMethod", (Integer) weaponId),
+                            new SFSUserVariable("capturedBy", (Integer) sender.user.getPlayerId()),
                             new SFSUserVariable("avatarState", "captured"),
                             new SFSUserVariable("health", (Float) health)));
         } else {
             eventQueue.addSFSObject(
                     ExoParamUtils.serialize(
                             new SendDamage(
-                                    bullet.num,
-                                    bullet.player.user.getPlayerId() - 1,
-                                    bullet.damage,
+                                    bnum,
+                                    sender.user.getPlayerId() - 1,
+                                    damage,
                                     headshot ? 1 : 0,
                                     health),
                             user.getPlayerId() - 1));
@@ -294,7 +319,7 @@ public class ExoPlayer extends ExoTickable {
         return responseVal;
     }
 
-    public void addHack(ExoBullet bullet) {
+    public void addHack(float damageModifier) {
         setVariables(List.of(new SFSUserVariable("hacks", (Integer) (getHacks() + 1))));
 
         int boost = getBoost();
@@ -307,7 +332,7 @@ public class ExoPlayer extends ExoTickable {
                 || teamBoost == ExoPickupEnum.boost_team_speed.id) {
             hacksSpeed++;
         }
-        if (bullet.boosted) {
+        if (damageModifier > 1f) {
             hacksDamageBoost++;
         }
         if (boost == ExoPickupEnum.boost_armor.id
