@@ -2,10 +2,9 @@ package xyz.openexonaut.extension.exolib.game;
 
 import java.awt.*;
 
-import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
-import xyz.openexonaut.extension.exolib.resources.*;
+import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoBullet extends ExoTickable {
     public final int num;
@@ -16,7 +15,7 @@ public class ExoBullet extends ExoTickable {
     public final float damage;
     public final ExoPlayer player;
     public final int weaponId;
-    public final boolean boosted;
+    public final float damageModifier;
 
     private float x;
     private float y;
@@ -32,7 +31,6 @@ public class ExoBullet extends ExoTickable {
             float x,
             float y,
             ExoPlayer player) {
-        float damageModifier = getDamageModifier(player);
         angle = (float) Math.toRadians(angle + 90f);
 
         this.num = num;
@@ -47,14 +45,13 @@ public class ExoBullet extends ExoTickable {
         this.y = y;
         this.dist = 0f;
 
-        this.boosted = damageModifier > 1f;
-        this.damage = damage * damageModifier;
+        this.damage = damage;
+        this.damageModifier = ExoDamageUtils.getDamageModifier(player);
     }
 
     // sniper hitscan
     public ExoBullet(
             float startX, float startY, float endX, float endY, float damage, ExoPlayer player) {
-        float damageModifier = getDamageModifier(player);
 
         this.num = -1;
         this.range = 1000f;
@@ -68,8 +65,8 @@ public class ExoBullet extends ExoTickable {
         this.y = startY;
         this.dist = 0f;
 
-        this.boosted = damageModifier > 1f;
-        this.damage = damage * damageModifier;
+        this.damage = damage;
+        this.damageModifier = ExoDamageUtils.getDamageModifier(player);
     }
 
     public float getX() {
@@ -99,16 +96,5 @@ public class ExoBullet extends ExoTickable {
     public void draw(Graphics g, ExoMap map) {
         ExoInt2DVector drawBullet = new Exo2DVector(x, y).convertNativeToDraw(map.scale);
         g.fillRect(drawBullet.x - 1, drawBullet.y - 1, 3, 3);
-    }
-
-    private static float getDamageModifier(ExoPlayer player) {
-        float modifier = 1f;
-        if (player.getBoost() == ExoPickupEnum.boost_damage.id) {
-            modifier += ExoProps.getBoostDamageMod();
-        }
-        if (player.getTeamBoost() == ExoPickupEnum.boost_team_damage.id) {
-            modifier += ExoProps.getBoostTeamDamageMod();
-        }
-        return modifier;
     }
 }

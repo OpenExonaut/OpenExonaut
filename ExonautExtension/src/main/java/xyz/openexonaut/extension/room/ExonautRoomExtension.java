@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.*;
 import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.extensions.*;
 
+import xyz.openexonaut.extension.exolib.evthandlers.*;
 import xyz.openexonaut.extension.exolib.game.*;
 import xyz.openexonaut.extension.room.eventhandlers.*;
 import xyz.openexonaut.extension.room.reqhandlers.*;
@@ -49,8 +50,14 @@ public class ExonautRoomExtension extends SFSExtension {
         return game.getWorld().items;
     }
 
-    private boolean spawnBullet(ExoBullet bullet) {
-        return game.getWorld().spawnBullet(bullet);
+    private Object spawnBullet(ExoBullet bullet) {
+        game.getWorld().spawnBullet(bullet);
+        return null;
+    }
+
+    private Object spawnGrenade(ExoGrenade bullet) {
+        game.getWorld().spawnGrenade(bullet);
+        return null;
     }
 
     private Object spawnPlayer(int id) {
@@ -61,6 +68,14 @@ public class ExonautRoomExtension extends SFSExtension {
     private Object handleSnipe(ExoBullet bullet) {
         game.getWorld().handleSnipe(bullet);
         return null;
+    }
+
+    private boolean explodeGrenade(SendGrenadeExplode explosion) {
+        return game.getWorld().explodeGrenade(explosion.num, explosion.x, explosion.y);
+    }
+
+    private boolean explodeRocket(SendRocketExplode explosion) {
+        return game.getWorld().explodeRocket(explosion.num, explosion.x, explosion.y);
     }
 
     @Override
@@ -76,10 +91,16 @@ public class ExonautRoomExtension extends SFSExtension {
                 return getItems();
             case "spawnBullet":
                 return spawnBullet((ExoBullet) parameters);
+            case "spawnGrenade":
+                return spawnGrenade((ExoGrenade) parameters);
             case "spawnPlayer":
                 return spawnPlayer((Integer) parameters);
             case "handleSnipe":
                 return handleSnipe((ExoBullet) parameters);
+            case "explodeGrenade":
+                return explodeGrenade((SendGrenadeExplode) parameters);
+            case "explodeRocket":
+                return explodeRocket((SendRocketExplode) parameters);
             default:
                 throw new RuntimeException(
                         String.format("Invalid internal room message %s", command));
