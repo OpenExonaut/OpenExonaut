@@ -4,6 +4,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
+import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.physics.box2d.*;
 
 import com.smartfoxserver.v2.*;
@@ -35,7 +36,9 @@ public class ExoPlayer extends ExoTickable {
     @SuppressWarnings("unused")
     private int fuelConsumed, hacksInvisible, hacksSpeed, hacksDamageBoost, hacksArmorBoost;
 
-    private Body body = null;
+    private Body activeBody = null;
+    private Body standingBody = null;
+    private Body crouchingBody = null;
 
     static {
         Box2D.init();
@@ -110,7 +113,7 @@ public class ExoPlayer extends ExoTickable {
     }
 
     public Body getBody() {
-        return body;
+        return activeBody;
     }
 
     public int getCrashes() {
@@ -125,13 +128,27 @@ public class ExoPlayer extends ExoTickable {
         this.fuelConsumed += fuelConsumed;
     }
 
-    public void setBody(Body body) {
-        this.body = body;
+    public void setBodies(Body standingBody, Body crouchingBody) {
+        this.standingBody = standingBody;
+        this.crouchingBody = crouchingBody;
+        activeBody = standingBody;
     }
 
     @Override
     public float tick(ISFSArray eventQueue) {
         float deltaTime = super.tick(eventQueue);
+
+        if (isSmall()) {
+            crouchingBody.setActive(true);
+            standingBody.setActive(false);
+            activeBody = crouchingBody;
+        } else {
+            standingBody.setActive(true);
+            crouchingBody.setActive(false);
+            activeBody = standingBody;
+        }
+
+        activeBody.setTransform(new Vector2(getX(), getY()), 0f);
 
         List<UserVariable> variableChanges = new ArrayList<>();
 
@@ -159,24 +176,24 @@ public class ExoPlayer extends ExoTickable {
             }
         }
 
-        if (getBoost() != 0) {
+        if (getBoost() >= 0) {
             boostTimer = Math.max(boostTimer - deltaTime, 0f);
             if (boostTimer == 0f) {
                 eventQueue.addSFSObject(
                         ExoParamUtils.serialize(
                                 new SendPickupComplete(getBoost()), user.getPlayerId()));
 
-                variableChanges.add(new SFSUserVariable("boost", (Integer) 0));
+                variableChanges.add(new SFSUserVariable("boost", (Integer) (-1)));
             }
         }
-        if (getTeamBoost() != 0) {
+        if (getTeamBoost() >= 0) {
             teamBoostTimer = Math.max(teamBoostTimer - deltaTime, 0f);
             if (teamBoostTimer == 0f) {
                 eventQueue.addSFSObject(
                         ExoParamUtils.serialize(
                                 new SendPickupComplete(getTeamBoost()), user.getPlayerId()));
 
-                variableChanges.add(new SFSUserVariable("teamBoost", (Integer) 0));
+                variableChanges.add(new SFSUserVariable("teamBoost", (Integer) (-1)));
             }
         }
 
@@ -200,7 +217,10 @@ public class ExoPlayer extends ExoTickable {
 
     public void draw(Graphics g, ExoMap map) {
         float centerX = getX();
-        float centerY = getY() + ExoDefs.radius + ExoDefs.standingHalfHeight;
+        float centerY =
+                getY()
+                        + ExoDefs.radius
+                        + (isSmall() ? ExoDefs.crouchRollHalfHeight : ExoDefs.standingHalfHeight);
 
         ExoDrawUtils.fillCapsule(
                 g,
@@ -210,7 +230,7 @@ public class ExoPlayer extends ExoTickable {
                 centerX,
                 centerY,
                 ExoDefs.radius,
-                ExoDefs.standingHalfHeight * 2f,
+                (isSmall() ? ExoDefs.crouchRollHalfHeight : ExoDefs.standingHalfHeight) * 2f,
                 map.scale);
 
         // the center of the character collider in the game is set to y = 6f, despite the total
@@ -355,5 +375,9 @@ public class ExoPlayer extends ExoTickable {
 
     public void setVariables(List<UserVariable> variables) {
         SmartFoxServer.getInstance().getAPIManager().getSFSApi().setUserVariables(user, variables);
+    }
+
+    public boolean isSmall() {
+        return (getMoveState() & ExoStateEnum.smallMask) != 0;
     }
 }

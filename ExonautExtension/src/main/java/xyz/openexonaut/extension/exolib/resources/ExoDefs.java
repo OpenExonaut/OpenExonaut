@@ -2,7 +2,7 @@ package xyz.openexonaut.extension.exolib.resources;
 
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.physics.box2d.*;
-import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
+import com.badlogic.gdx.physics.box2d.BodyDef.*;
 
 import xyz.openexonaut.extension.exolib.data.*;
 
@@ -36,11 +36,10 @@ public final class ExoDefs {
         Box2D.init();
 
         wallDef.awake = false;
+        wallDef.type = BodyType.StaticBody;
         playerDef.fixedRotation = true;
-        blastDef.type =
-                BodyType.DynamicBody; // kinematic bodies don't interact with kinematic or static
-        // bodies
-        blastDef.gravityScale = 0f;
+        playerDef.type = BodyType.DynamicBody;
+        blastDef.type = BodyType.StaticBody;
 
         rocketBlastDef1.isSensor = true;
         rocketBlastDef2.isSensor = true;
