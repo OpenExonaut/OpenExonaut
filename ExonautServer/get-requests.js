@@ -2,20 +2,6 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 
 module.exports = {
-  handleBrowserLogin: function (username, collection) {
-    // /authenticate/user/{username} RETURNS username from database
-    return new Promise(function (resolve, reject) {
-      collection
-        .findOne({ 'user.TEGid': { $regex: new RegExp(`^${username}$`, 'i') } })
-        .then((data) => {
-          resolve(data);
-        })
-        .catch((err) => {
-          reject(err);
-        });
-    });
-  },
-
   handleLogin: function (username, password, token, collection) {
     return new Promise(function (resolve, reject) {
       collection

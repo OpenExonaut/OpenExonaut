@@ -10,7 +10,7 @@ An open-source lobby, service, and game server for Project Exonaut, built upon t
 [//]: # (OpenATBP docs/screenshot2.png was here)
 
 ## Status
-Currently, games can be entered and played, though not ended, and the metagame can be logged into. Explosives, motion interpolation, game termination, and achievements still need to be worked on.
+Currently, games can be played and rewards earned and spent. Position extrapolation and achievements still need to be worked on.
 
 ## Server Architecture
 Originally, Project Exonaut required several server-side components in order to to function:

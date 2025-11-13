@@ -8,18 +8,19 @@ import java.util.function.*;
 
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.physics.box2d.*;
-import com.badlogic.gdx.physics.box2d.Shape;
 
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.data.*;
 
 import xyz.openexonaut.extension.exolib.data.*;
-import xyz.openexonaut.extension.exolib.evthandlers.SendRocketExplode;
+import xyz.openexonaut.extension.exolib.evthandlers.*;
 import xyz.openexonaut.extension.exolib.map.*;
 import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoWorld extends ExoTickable {
+    private static final ExoUserData wallUserData = new ExoUserData(0, 0);
+
     public final ExoMap map;
     public final ExoItem[] items;
 
@@ -42,7 +43,7 @@ public class ExoWorld extends ExoTickable {
 
         Body walls = world.createBody(ExoDefs.wallDef);
         for (FixtureDef wall : map.wallFixtureDefs) {
-            walls.createFixture(wall).setUserData(new ExoUserData(0, 0));
+            walls.createFixture(wall).setUserData(wallUserData);
         }
 
         if (!map.finalized()) {
@@ -88,11 +89,22 @@ public class ExoWorld extends ExoTickable {
         ExoDefs.playerDef.position.set(player.getX(), player.getY());
         ExoDefs.setFilters(ExoFilterUtils.getPlayerCategory(id), ExoFilterUtils.getPlayerMask(id));
 
-        Body newPlayerBody = world.createBody(ExoDefs.playerDef);
-        newPlayerBody.createFixture(ExoDefs.standingHeadDef).setUserData(new ExoUserData(id, 1));
-        newPlayerBody.createFixture(ExoDefs.standingBodyDef).setUserData(new ExoUserData(id, 2));
-        newPlayerBody.createFixture(ExoDefs.standingFeetDef).setUserData(new ExoUserData(id, 3));
-        player.setBody(newPlayerBody);
+        ExoUserData headUserData = new ExoUserData(id, 1);
+        ExoUserData bodyUserData = new ExoUserData(id, 2);
+        ExoUserData feetUserData = new ExoUserData(id, 3);
+
+        Body crouchingBody = world.createBody(ExoDefs.playerDef);
+        crouchingBody.createFixture(ExoDefs.crouchRollHeadDef).setUserData(headUserData);
+        crouchingBody.createFixture(ExoDefs.crouchRollBodyDef).setUserData(bodyUserData);
+        crouchingBody.createFixture(ExoDefs.crouchRollFeetDef).setUserData(feetUserData);
+        crouchingBody.setActive(false);
+
+        Body standingBody = world.createBody(ExoDefs.playerDef);
+        standingBody.createFixture(ExoDefs.standingHeadDef).setUserData(headUserData);
+        standingBody.createFixture(ExoDefs.standingBodyDef).setUserData(bodyUserData);
+        standingBody.createFixture(ExoDefs.standingFeetDef).setUserData(feetUserData);
+
+        player.setBodies(standingBody, crouchingBody);
     }
 
     public void spawnBullet(ExoBullet bullet) {
@@ -241,7 +253,6 @@ public class ExoWorld extends ExoTickable {
             if (user != null) {
                 ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
                 player.tick(eventQueue);
-                player.getBody().setTransform(new Vector2(player.getX(), player.getY()), 0f);
             }
         }
 
@@ -399,16 +410,29 @@ public class ExoWorld extends ExoTickable {
                                                 exoUserData.id == 0
                                                         || exoUserData.id == playerFixtureId);
 
-                        Vector2 bodyPartCenter;
-                        Shape bodyPartShape = bodyPart.getShape();
-                        if (bodyPart.getShape() instanceof CircleShape) {
-                            bodyPartCenter = ((CircleShape) bodyPartShape).getPosition();
-                        } else {
-                            bodyPartCenter = player.getBody().getPosition().cpy();
-                            bodyPartCenter.add(
-                                    0f,
-                                    ExoDefs.radius
-                                            + ExoDefs.standingHalfHeight); // TODO: crouch handling
+                        Vector2 bodyPartCenter = player.getBody().getPosition().cpy();
+
+                        switch (((ExoUserData) bodyPart.getUserData()).part) {
+                            case 1: // head
+                                bodyPartCenter.add(
+                                        0f,
+                                        ExoDefs.radius
+                                                + 2f
+                                                        * (player.isSmall()
+                                                                ? ExoDefs.crouchRollHalfHeight
+                                                                : ExoDefs.standingHalfHeight));
+                                break;
+                            case 2: // body
+                                bodyPartCenter.add(
+                                        0f,
+                                        ExoDefs.radius
+                                                + (player.isSmall()
+                                                        ? ExoDefs.crouchRollHalfHeight
+                                                        : ExoDefs.standingHalfHeight));
+                                break;
+                            case 3: // feet
+                                bodyPartCenter.add(0f, ExoDefs.radius);
+                                break;
                         }
 
                         world.rayCast(

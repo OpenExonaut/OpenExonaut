@@ -15,6 +15,7 @@ import com.smartfoxserver.v2.entities.variables.*;
 import com.smartfoxserver.v2.util.*;
 
 import xyz.openexonaut.extension.exolib.resources.*;
+import xyz.openexonaut.extension.exolib.resources.ExoDB.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoGame extends ExoTickable implements Runnable {
@@ -162,10 +163,10 @@ public class ExoGame extends ExoTickable implements Runnable {
                 // TODO: event award modifiers
 
                 if (!tegID.equals("")) {
-                    ExoDB.ExoPlayerDBUpdateOutput playerDBUpdate =
+                    ExoPlayerDBUpdateOutput playerDBUpdate =
                             ExoDB.endOfMatchPlayerUpdate(
                                     tegID,
-                                    new ExoDB.ExoPlayerDBUpdateInput(
+                                    new ExoPlayerDBUpdateInput(
                                             award, user.getVariable("suitId").getIntValue()));
 
                     userSummary.putInt("level", playerDBUpdate.level);
@@ -213,6 +214,12 @@ public class ExoGame extends ExoTickable implements Runnable {
 
             if (queueTime == 0f) {
                 setVariables(List.of(new SFSRoomVariable("state", "play")));
+
+                for (User user : room.getPlayersList()) {
+                    ((ExoPlayer) user.getProperty("ExoPlayer"))
+                            .prime(); // otherwise, a long lobby queue can lead to immediate break
+                    // out of crash sphere
+                }
 
                 if (world.map.scale != 0f) {
                     peek = new ExoPeek();
