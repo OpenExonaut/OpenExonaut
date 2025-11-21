@@ -237,10 +237,10 @@ public class ExoPlayer extends ExoTickable {
         // height being 13f. hope that's not too important
         ExoInt2DVector drawCenter =
                 new Exo2DVector(centerX, centerY).convertNativeToDraw(map.scale);
+        int scaleInt = (int) map.scale;
+        int halfScale = (int) (map.scale / 2f);
         g.setColor(Color.RED);
-        g.drawLine(drawCenter.x, drawCenter.y, drawCenter.x, drawCenter.y);
-
-        // TODO: disjoint phantoms?
+        g.fillRect(drawCenter.x - halfScale, drawCenter.y - halfScale, scaleInt, scaleInt);
     }
 
     public void bulletHit(ExoBullet bullet, int where, ISFSArray eventQueue) {

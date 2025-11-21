@@ -29,8 +29,8 @@ public final class ExoEntryUtils {
                     new SFSUserVariable("capturedMethod", (int) 0),
                     new SFSUserVariable("capturedBy", (int) 0),
                     new SFSUserVariable("pickingup", true),
-                    new SFSUserVariable("boost", (int) 0),
-                    new SFSUserVariable("teamBoost", (int) 0),
+                    new SFSUserVariable("boost", (int) (-1)),
+                    new SFSUserVariable("teamBoost", (int) (-1)),
                     new SFSUserVariable("x", (double) 0.0),
                     new SFSUserVariable("y", (double) 0.0),
                     new SFSUserVariable("armAngle", (double) 0.0),
@@ -108,10 +108,7 @@ public final class ExoEntryUtils {
 
         userVars.addAll(initialUserVars);
         userVars.add(new SFSUserVariable("health", (double) suit.Health));
-
-        if (userVars.size() > 0) {
-            sfsApi.setUserVariables(sender, userVars);
-        }
+        sfsApi.setUserVariables(sender, userVars);
 
         player.setSuit(suit);
 

@@ -95,6 +95,9 @@ public class ExoBullet extends ExoTickable {
 
     public void draw(Graphics g, ExoMap map) {
         ExoInt2DVector drawBullet = new Exo2DVector(x, y).convertNativeToDraw(map.scale);
-        g.fillRect(drawBullet.x - 1, drawBullet.y - 1, 3, 3);
+        int size = (int) (3f * map.scale);
+        int halfSize = (int) (1.5f * map.scale);
+
+        g.fillRect(drawBullet.x - halfSize, drawBullet.y - halfSize, size, size);
     }
 }
