@@ -249,6 +249,9 @@ public class ExoWorld extends ExoTickable {
     public float tick(ISFSArray eventQueue) {
         float deltaTime = super.tick(eventQueue);
 
+        // TODO: does this adequately address the player tunneling problem?
+        simulateBullets(eventQueue, false);
+
         for (User user : room.getPlayersList()) {
             if (user != null) {
                 ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
@@ -256,16 +259,16 @@ public class ExoWorld extends ExoTickable {
             }
         }
 
+        simulateBullets(eventQueue, true);
+
         for (ExoItem item : items) {
             item.tick(eventQueue);
         }
 
-        simulateBullets(eventQueue);
-
         return deltaTime;
     }
 
-    private void simulateBullets(ISFSArray eventQueue) {
+    private void simulateBullets(ISFSArray eventQueue, boolean commitDistance) {
         List<ExoBullet> expiringBullets = new ArrayList<>(activeBullets.size());
         Map<ExoBullet, ExoUserData> playerHits = new HashMap<>();
 
@@ -304,7 +307,7 @@ public class ExoWorld extends ExoTickable {
                 } else if (bullet.weaponId == 8) {
                     inactiveRockets.put(bullet.num, bullet);
                 }
-            } else {
+            } else if (commitDistance) {
                 if (last) {
                     expiringBullets.add(bullet);
                 } else {
