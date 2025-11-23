@@ -1,5 +1,7 @@
 package xyz.openexonaut.extension.exolib.utils;
 
+import java.util.*;
+
 public final class ExoFilterUtils {
     private ExoFilterUtils() {}
 
@@ -21,8 +23,6 @@ public final class ExoFilterUtils {
                         - ex: 0x00fe: Weapon used by Player 1
 
         As such, players collide with the walls and with other players' weapons, but not with each other nor their own weapons.
-
-        TODO: team filtering
     */
 
     public static short getPlayerCategory(int id) {
@@ -39,5 +39,13 @@ public final class ExoFilterUtils {
 
     public static short getWeaponMask(int userId) {
         return (short) (0x00ff ^ (1 << (userId - 1)));
+    }
+
+    public static short getTeamWeaponMask(List<Integer> teamIDs) {
+        short mask = 0x00ff;
+        for (int user : teamIDs) {
+            mask &= getWeaponMask(user);
+        }
+        return mask;
     }
 }

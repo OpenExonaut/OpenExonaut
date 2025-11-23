@@ -1,10 +1,9 @@
 package xyz.openexonaut.extension.room;
 
-// TODO: stop the ~5-10s hang on other clients when user closes game
-
 import java.util.concurrent.atomic.*;
 
 import com.smartfoxserver.v2.core.*;
+import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.extensions.*;
 
 import xyz.openexonaut.extension.exolib.evthandlers.*;
@@ -20,6 +19,8 @@ public class ExonautRoomExtension extends SFSExtension {
         game = new ExoGame(getParentRoom());
 
         addEventHandler(SFSEventType.USER_JOIN_ROOM, UserJoinRoomHandler.class);
+        addEventHandler(SFSEventType.USER_LEAVE_ROOM, UserLeaveRoomHandler.class);
+        addEventHandler(SFSEventType.USER_DISCONNECT, UserDisconnectRoomHandler.class);
 
         addRequestHandler("evt", EvtHandler.class);
         addRequestHandler("gef", GefHandler.class);
@@ -60,8 +61,13 @@ public class ExonautRoomExtension extends SFSExtension {
         return null;
     }
 
-    private Object spawnPlayer(int id) {
-        game.spawnPlayer(id);
+    private Object spawnPlayer(User user) {
+        game.spawnPlayer(user);
+        return null;
+    }
+
+    private Object removePlayer(User user) {
+        game.removePlayer(user);
         return null;
     }
 
@@ -76,6 +82,10 @@ public class ExonautRoomExtension extends SFSExtension {
 
     private boolean explodeRocket(SendRocketExplode explosion) {
         return game.getWorld().explodeRocket(explosion.num, explosion.x, explosion.y);
+    }
+
+    private int addTeamHack(boolean banzai) {
+        return game.addTeamHack(banzai);
     }
 
     @Override
@@ -94,13 +104,17 @@ public class ExonautRoomExtension extends SFSExtension {
             case "spawnGrenade":
                 return spawnGrenade((ExoGrenade) parameters);
             case "spawnPlayer":
-                return spawnPlayer((Integer) parameters);
+                return spawnPlayer((User) parameters);
+            case "removePlayer":
+                return removePlayer((User) parameters);
             case "handleSnipe":
                 return handleSnipe((ExoBullet) parameters);
             case "explodeGrenade":
                 return explodeGrenade((SendGrenadeExplode) parameters);
             case "explodeRocket":
                 return explodeRocket((SendRocketExplode) parameters);
+            case "addTeamHack":
+                return addTeamHack((Boolean) parameters);
             default:
                 throw new RuntimeException(
                         String.format("Invalid internal room message %s", command));

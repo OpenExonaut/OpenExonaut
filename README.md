@@ -10,7 +10,7 @@ An open-source lobby, service, and game server for Project Exonaut, built upon t
 [//]: # (OpenATBP docs/screenshot2.png was here)
 
 ## Status
-Currently, games can be played and rewards earned and spent. Position extrapolation and achievements still need to be worked on.
+Currently, games can be played and rewards earned and spent. Achievements and events still need to be worked on.
 
 ## Server Architecture
 Originally, Project Exonaut required several server-side components in order to to function:
@@ -26,13 +26,13 @@ This is unfortunately not available yet, but work is slowly being done. For the 
 
 ## Development
 
-### Prerequisites 
+### Prerequisites
 *Ensure these are all installed before proceeding!*
 * Git
 * Java Development Kit 11
 * SFS2X Community Edition
 * NodeJS and NPM
-* MongoDB Server 
+* MongoDB Server
 
 ### Setting up
 1. Clone the repository: `git clone https://github.com/OpenExonaut/OpenExonaut`
@@ -48,7 +48,7 @@ This is unfortunately not available yet, but work is slowly being done. For the 
 1. Start SmartFoxServer2X, you should see a log line indicating the zone extension is working: `Exonaut Zone Extension init finished`
 1. Finally, connect to http://127.0.0.1:80 with an NPAPI-compatible browser such as Pale Moon to test the game!
 
-Note that you can also run any Gradle task (`gradlew` commands) graphically through an IDE such as IntelliJ IDEA or Eclipse. 
+Note that you can also run any Gradle task (`gradlew` commands) graphically through an IDE such as IntelliJ IDEA or Eclipse.
 
 These instructions are subject to change, if you run into any problems or have questions feel free to open an issue here on Github.
 

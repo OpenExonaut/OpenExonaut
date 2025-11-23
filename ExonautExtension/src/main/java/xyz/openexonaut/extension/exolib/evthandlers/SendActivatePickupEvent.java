@@ -44,8 +44,13 @@ public class SendActivatePickupEvent {
             if (ExoPickupEnum.isIndividualBoost(args.pType)) {
                 player.setBoost(args.pType, args.eTime, tickArray);
             } else if (ExoPickupEnum.isTeamBoost(args.pType)) {
-                // TODO: set pickup for whole team
-                player.setTeamBoost(args.pType, args.eTime, tickArray);
+                String faction = player.user.getVariable("faction").getStringValue();
+                for (User user : room.getPlayersList()) {
+                    if (user.getVariable("faction").getStringValue().equals(faction)) {
+                        ((ExoPlayer) user.getProperty("ExoPlayer"))
+                                .setTeamBoost(args.pType, args.eTime, tickArray);
+                    }
+                }
             }
 
             if (tickArray.size() > 0) {

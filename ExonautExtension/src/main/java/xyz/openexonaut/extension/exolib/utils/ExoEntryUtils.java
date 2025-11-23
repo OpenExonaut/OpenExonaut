@@ -16,10 +16,16 @@ import xyz.openexonaut.extension.exolib.game.*;
 import xyz.openexonaut.extension.exolib.resources.*;
 
 public final class ExoEntryUtils {
+    private static final RoomVariable initialImbalance = new SFSRoomVariable("imbalance", (int) 0);
+
+    static {
+        initialImbalance.setHidden(true);
+    }
+
     public static final List<RoomVariable> initialRoomVars =
             List.of(
                     new SFSRoomVariable("state", "wait_for_min_players"),
-                    new SFSRoomVariable("hackLimit", (int) 20),
+                    initialImbalance,
                     new SFSRoomVariable("time", (int) 0));
     public static final List<UserVariable> initialUserVars =
             List.of(
@@ -92,6 +98,7 @@ public final class ExoEntryUtils {
         List<UserVariable> userVars = new ArrayList<>();
         int mapId = (int) (Math.random() * ExoMapManager.getMapCount()) + 1;
         ExoPlayer player = (ExoPlayer) sender.getProperty("ExoPlayer");
+        boolean banzai = sender.getVariable("faction").getStringValue().equals("banzai");
         String mode;
 
         ExoSuit suit = ExoGameData.getSuit(sender.getVariable("suitId").getIntValue());
@@ -123,6 +130,12 @@ public final class ExoEntryUtils {
 
         // "stop" is used existentially
         roomVars.addAll(initialRoomVars);
+        roomVars.add(
+                new SFSRoomVariable(
+                        "hackLimit",
+                        modeParam.equals("team")
+                                ? ExoProps.getMaxHacksTeam()
+                                : ExoProps.getMaxHacksSolo()));
         roomVars.add(new SFSRoomVariable("mapId", mapId));
         roomVars.add(new SFSRoomVariable("lastMapLoadedId", mapId));
 
@@ -138,13 +151,19 @@ public final class ExoEntryUtils {
 
         roomSettings.setRoomVariables(roomVars);
 
+        MatchExpression roomMatch =
+                new MatchExpression("mode", StringMatch.EQUALS, mode)
+                        .and("state", StringMatch.NOT_EQUALS, "play");
+        if (mode.equals("team")) {
+            roomMatch =
+                    roomMatch.and(
+                            "imbalance",
+                            banzai ? NumberMatch.LESS_THAN : NumberMatch.GREATER_THAN,
+                            banzai ? 1 : -1);
+        }
+
         try {
-            sfsApi.quickJoinOrCreateRoom(
-                    sender,
-                    new MatchExpression("mode", StringMatch.EQUALS, mode)
-                            .and("state", StringMatch.NOT_EQUALS, "play"),
-                    Arrays.asList("default"),
-                    roomSettings);
+            sfsApi.quickJoinOrCreateRoom(sender, roomMatch, Arrays.asList("default"), roomSettings);
         } catch (SFSCreateRoomException | SFSJoinRoomException e) {
             throw new RuntimeException(e);
         }
