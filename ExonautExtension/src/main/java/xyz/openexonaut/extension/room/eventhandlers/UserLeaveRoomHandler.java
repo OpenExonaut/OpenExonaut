@@ -4,15 +4,15 @@ import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.extensions.*;
 
-public class UserJoinRoomHandler extends BaseServerEventHandler {
+public class UserLeaveRoomHandler extends BaseServerEventHandler {
     @Override
     public void handleServerEvent(ISFSEvent event) {
         User user = (User) event.getParameter(SFSEventParam.USER);
 
         trace(
                 ExtensionLogLevel.DEBUG,
-                String.format("room join from %s (id %d)", user.getName(), user.getId()));
+                String.format("room leave from %s (id %d)", user.getName(), user.getId()));
 
-        getParentExtension().handleInternalMessage("spawnPlayer", user);
+        getParentExtension().handleInternalMessage("removePlayer", user);
     }
 }

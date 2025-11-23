@@ -9,6 +9,6 @@ public class SendRoll {
     public static final int msgType = 26;
 
     public static void handle(Room room, ExoPlayer player, ISFSObject params, String evtName) {
-        // TODO: player movement
+        // TODO: use for something?
     }
 }

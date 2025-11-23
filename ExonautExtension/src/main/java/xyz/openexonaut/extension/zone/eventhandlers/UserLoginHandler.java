@@ -14,6 +14,11 @@ public class UserLoginHandler extends BaseServerEventHandler {
         String username = (String) event.getParameter(SFSEventParam.LOGIN_NAME);
         String password = (String) event.getParameter(SFSEventParam.LOGIN_PASSWORD);
 
+        trace(
+                ExtensionLogLevel.DEBUG,
+                String.format(
+                        "zone login with username %s (session id %d)", username, session.getId()));
+
         if (!ExoEntryUtils.login(
                 session, username, password, getParentExtension().getParentZone())) {
             throw new SFSLoginException("User matching provided credentials not found.");

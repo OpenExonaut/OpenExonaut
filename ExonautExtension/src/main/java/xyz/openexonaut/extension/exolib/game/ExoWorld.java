@@ -20,18 +20,23 @@ import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoWorld extends ExoTickable {
     private static final ExoUserData wallUserData = new ExoUserData(0, 0);
+    private static final Vector2 gravity = new Vector2(0f, -100f);
 
     public final ExoMap map;
     public final ExoItem[] items;
+    public final boolean team;
 
     private final Room room;
 
-    private World world = new World(new Vector2(0f, -100f), true);
+    private World world = new World(gravity, true);
     private ExoContactListener contactListener = new ExoContactListener();
 
     private final Map<Integer, ExoBullet> activeBullets = new ConcurrentHashMap<>();
     private final Map<Integer, ExoBullet> inactiveRockets = new ConcurrentHashMap<>();
     private final Map<Integer, ExoGrenade> activeGrenades = new ConcurrentHashMap<>();
+
+    private final List<Integer> banzaiIDs = new ArrayList<>();
+    private final List<Integer> atlasIDs = new ArrayList<>();
 
     static {
         Box2D.init();
@@ -40,6 +45,8 @@ public class ExoWorld extends ExoTickable {
     public ExoWorld(ExoMap map, Room room) {
         this.map = map;
         this.room = room;
+
+        team = room.getVariable("mode").getStringValue().equals("team");
 
         Body walls = world.createBody(ExoDefs.wallDef);
         for (FixtureDef wall : map.wallFixtureDefs) {
@@ -56,7 +63,7 @@ public class ExoWorld extends ExoTickable {
             map.finishedFinalization();
         }
 
-        if (room.getVariable("mode").getStringValue().equals("team")) {
+        if (team) {
             items = new ExoItem[map.teamItemSpawns.length];
             for (int i = 0; i < items.length; i++) {
                 items[i] = new ExoItem(map.teamItemSpawns[i]);
@@ -84,8 +91,9 @@ public class ExoWorld extends ExoTickable {
         spawner.finalize(Math.min(Math.max(center, Math.max(left, right)), 12f));
     }
 
-    public void spawnPlayer(int id) {
-        ExoPlayer player = (ExoPlayer) room.getPlayersList().get(id - 1).getProperty("ExoPlayer");
+    public void spawnPlayer(User user) {
+        int id = user.getPlayerId();
+        ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
         ExoDefs.playerDef.position.set(player.getX(), player.getY());
         ExoDefs.setFilters(ExoFilterUtils.getPlayerCategory(id), ExoFilterUtils.getPlayerMask(id));
 
@@ -105,6 +113,44 @@ public class ExoWorld extends ExoTickable {
         standingBody.createFixture(ExoDefs.standingFeetDef).setUserData(feetUserData);
 
         player.setBodies(standingBody, crouchingBody);
+
+        (user.getVariable("faction").getStringValue().equals("banzai") ? banzaiIDs : atlasIDs)
+                .add(id);
+    }
+
+    public void removePlayer(User user) {
+        ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
+        int playerID = user.getPlayerId();
+
+        world.destroyBody(player.getStandingBody());
+        world.destroyBody(player.getCrouchingBody());
+
+        List<Integer> playerBullets = new ArrayList<>();
+        List<Integer> playerRockets = new ArrayList<>();
+        List<Integer> playerGrenades = new ArrayList<>();
+
+        for (ExoBullet bullet : activeBullets.values()) {
+            if (bullet.player == player) playerBullets.add(bullet.num);
+        }
+        for (ExoBullet bullet : inactiveRockets.values()) {
+            if (bullet.player == player) playerRockets.add(bullet.num);
+        }
+        for (ExoGrenade grenade : activeGrenades.values()) {
+            if (grenade.player == player) playerGrenades.add(grenade.num);
+        }
+
+        for (int num : playerBullets) {
+            activeBullets.remove(num);
+        }
+        for (int num : playerRockets) {
+            inactiveRockets.remove(num);
+        }
+        for (int num : playerGrenades) {
+            activeGrenades.remove(num);
+        }
+
+        banzaiIDs.remove((Object) playerID);
+        atlasIDs.remove((Object) playerID);
     }
 
     public void spawnBullet(ExoBullet bullet) {
@@ -128,7 +174,7 @@ public class ExoWorld extends ExoTickable {
             if (raycastData.id != 0) {
                 ISFSArray eventArray = new SFSArray();
                 ((ExoPlayer) room.getPlayersList().get(raycastData.id - 1).getProperty("ExoPlayer"))
-                        .bulletHit(bullet, raycastData.part, eventArray);
+                        .bulletHit(bullet, raycastData.part, room, eventArray);
                 ExoSendUtils.sendEventArrayToAll(room, eventArray);
             }
         }
@@ -191,7 +237,13 @@ public class ExoWorld extends ExoTickable {
         }
 
         blast1Def.filter.categoryBits = ExoFilterUtils.getWeaponCategory(player.user.getPlayerId());
-        blast1Def.filter.maskBits = ExoFilterUtils.getWeaponMask(player.user.getPlayerId());
+        if (team) {
+            blast1Def.filter.maskBits =
+                    ExoFilterUtils.getTeamWeaponMask(
+                            banzaiIDs.contains(player.user.getPlayerId()) ? banzaiIDs : atlasIDs);
+        } else {
+            blast1Def.filter.maskBits = ExoFilterUtils.getWeaponMask(player.user.getPlayerId());
+        }
         blast2Def.filter.set(blast1Def.filter);
 
         ExoDefs.blastDef.position.set(x, y);
@@ -210,11 +262,23 @@ public class ExoWorld extends ExoTickable {
         ExoWeapon weapon = ExoGameData.getWeapon(weaponId);
         for (ExoPlayer damaged : contactListener.blast1Set) {
             damaged.blastHit(
-                    player, weaponId, weapon.Radius1_Damage, damageModifier, false, eventQueue);
+                    player,
+                    weaponId,
+                    weapon.Radius1_Damage,
+                    damageModifier,
+                    false,
+                    room,
+                    eventQueue);
         }
         for (ExoPlayer damaged : contactListener.blast2Set) {
             damaged.blastHit(
-                    player, weaponId, weapon.Radius2_Damage, damageModifier, false, eventQueue);
+                    player,
+                    weaponId,
+                    weapon.Radius2_Damage,
+                    damageModifier,
+                    false,
+                    room,
+                    eventQueue);
         }
 
         contactListener.blast1Set.clear();
@@ -275,7 +339,8 @@ public class ExoWorld extends ExoTickable {
         for (ExoBullet bullet : activeBullets.values()) {
             boolean last = false;
 
-            float raycastDist = bullet.velocity * bullet.tick(eventQueue);
+            float raycastDist =
+                    bullet.velocity * (commitDistance ? bullet.tick(eventQueue) : bullet.time());
             float remainingDist = bullet.range - bullet.getDist();
 
             if (raycastDist >= remainingDist) {
@@ -324,7 +389,7 @@ public class ExoWorld extends ExoTickable {
         for (ExoBullet bullet : playerHits.keySet()) {
             ExoUserData hitData = playerHits.get(bullet);
             ((ExoPlayer) room.getPlayersList().get(hitData.id - 1).getProperty("ExoPlayer"))
-                    .bulletHit(bullet, hitData.part, eventQueue);
+                    .bulletHit(bullet, hitData.part, room, eventQueue);
             if (bullet.weaponId == 8) {
                 explosion(
                         bullet.player,
@@ -339,8 +404,15 @@ public class ExoWorld extends ExoTickable {
 
     private ExoUserData bulletRaycast(
             float startX, float startY, float endX, float endY, int shooterID) {
-        ExoRaycastHandler raycastHandler =
-                new ExoRaycastHandler(exoUserData -> exoUserData.id != shooterID);
+        Predicate<ExoUserData> test;
+        if (team) {
+            List<Integer> teammateIDs = banzaiIDs.contains(shooterID) ? banzaiIDs : atlasIDs;
+            test = exoUserData -> !teammateIDs.contains(exoUserData.id);
+        } else {
+            test = exoUserData -> exoUserData.id != shooterID;
+        }
+
+        ExoRaycastHandler raycastHandler = new ExoRaycastHandler(test);
 
         world.rayCast(raycastHandler, startX, startY, endX, endY);
 
@@ -354,12 +426,14 @@ public class ExoWorld extends ExoTickable {
         ExoRaycastHandler raycastHandler =
                 new ExoRaycastHandler(exoUserData -> exoUserData.id == 0);
 
-        world.rayCast(raycastHandler, startX, startY, startX, startY - 12f);
+        world.rayCast(
+                raycastHandler, startX, startY, startX, startY - ExoItemSpawner.halfMaxHeight);
 
         raycastHandler.backcast = true;
-        world.rayCast(raycastHandler, startX, startY - 12f, startX, startY);
+        world.rayCast(
+                raycastHandler, startX, startY - ExoItemSpawner.halfMaxHeight, startX, startY);
 
-        return raycastHandler.raycastFraction * 12f;
+        return raycastHandler.raycastFraction * ExoItemSpawner.halfMaxHeight;
     }
 
     private class ExoContactListener implements ContactListener {

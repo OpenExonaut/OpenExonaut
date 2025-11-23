@@ -116,6 +116,14 @@ public class ExoPlayer extends ExoTickable {
         return activeBody;
     }
 
+    public Body getStandingBody() {
+        return standingBody;
+    }
+
+    public Body getCrouchingBody() {
+        return crouchingBody;
+    }
+
     public int getCrashes() {
         return crashes;
     }
@@ -243,7 +251,7 @@ public class ExoPlayer extends ExoTickable {
         g.fillRect(drawCenter.x - halfScale, drawCenter.y - halfScale, scaleInt, scaleInt);
     }
 
-    public void bulletHit(ExoBullet bullet, int where, ISFSArray eventQueue) {
+    public void bulletHit(ExoBullet bullet, int where, Room room, ISFSArray eventQueue) {
         hit(
                 bullet.player,
                 bullet.num,
@@ -251,6 +259,7 @@ public class ExoPlayer extends ExoTickable {
                 bullet.damage,
                 bullet.damageModifier,
                 where == 1,
+                room,
                 eventQueue);
     }
 
@@ -260,8 +269,9 @@ public class ExoPlayer extends ExoTickable {
             float damage,
             float damageModifier,
             boolean headshot,
+            Room room,
             ISFSArray eventQueue) {
-        hit(sender, -1, weaponId, damage, damageModifier, headshot, eventQueue);
+        hit(sender, -1, weaponId, damage, damageModifier, headshot, room, eventQueue);
     }
 
     private void hit(
@@ -271,6 +281,7 @@ public class ExoPlayer extends ExoTickable {
             float damage,
             float damageModifierAttackOnly,
             boolean headshot,
+            Room room,
             ISFSArray eventQueue) {
         if (!getAvatarState().equals("normal")) {
             return;
@@ -297,7 +308,7 @@ public class ExoPlayer extends ExoTickable {
                             user.getPlayerId() - 1));
 
             crashes++;
-            sender.addHack(damageModifierAttackOnly);
+            sender.addHack(damageModifierAttackOnly, room);
             health = suit.Health;
             crashTimer = 8f;
 
@@ -339,8 +350,12 @@ public class ExoPlayer extends ExoTickable {
         return responseVal;
     }
 
-    public void addHack(float damageModifier) {
+    public void addHack(float damageModifier, Room room) {
         setVariables(List.of(new SFSUserVariable("hacks", (Integer) (getHacks() + 1))));
+        room.getExtension()
+                .handleInternalMessage(
+                        "addTeamHack",
+                        user.getVariable("faction").getStringValue().equals("banzai"));
 
         int boost = getBoost();
         int teamBoost = getTeamBoost();

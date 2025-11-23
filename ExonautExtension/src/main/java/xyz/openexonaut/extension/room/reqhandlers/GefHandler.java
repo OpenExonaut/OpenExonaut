@@ -11,6 +11,6 @@ public class GefHandler extends BaseClientRequestHandler {
                 ExtensionLogLevel.DEBUG,
                 String.format("room gef from %s (id %d)", sender.getName(), sender.getId()));
 
-        getApi().disconnectUser(sender); // TODO: how should this actually work?
+        // do nothing. this is a debug request intended to instantly end the match
     }
 }

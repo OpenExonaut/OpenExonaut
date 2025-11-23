@@ -11,6 +11,8 @@ public final class ExoProps {
     private static float boostArmorMod = 0.2f;
     private static float boostTeamArmorMod = 0.2f;
 
+    private static int maxHacksSolo = 20;
+    private static int maxHacksTeam = 40;
     private static int soloTime = 600;
     private static int teamTime = 900;
     private static int queueWait = 20;
@@ -31,6 +33,8 @@ public final class ExoProps {
         boostArmorMod = Float.parseFloat(props.getProperty("boostArmorMod"));
         boostTeamArmorMod = Float.parseFloat(props.getProperty("boostTeamArmorMod"));
 
+        maxHacksSolo = Integer.parseInt(props.getProperty("maxHacksSolo"));
+        maxHacksTeam = Integer.parseInt(props.getProperty("maxHacksTeam"));
         soloTime = Integer.parseInt(props.getProperty("soloTime"));
         teamTime = Integer.parseInt(props.getProperty("teamTime"));
         queueWait = Integer.parseInt(props.getProperty("queueWait"));
@@ -63,6 +67,14 @@ public final class ExoProps {
 
     public static float getBoostTeamArmorMod() {
         return boostTeamArmorMod;
+    }
+
+    public static int getMaxHacksSolo() {
+        return maxHacksSolo;
+    }
+
+    public static int getMaxHacksTeam() {
+        return maxHacksTeam;
     }
 
     public static int getSoloTime() {

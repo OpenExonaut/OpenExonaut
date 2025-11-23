@@ -19,10 +19,14 @@ import xyz.openexonaut.extension.exolib.resources.ExoDB.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoGame extends ExoTickable implements Runnable {
+    public final boolean teamRoom;
     public final int timeLimit;
 
     public final AtomicInteger nextBulletId = new AtomicInteger(1);
     public final AtomicInteger nextGrenadeId = new AtomicInteger(1);
+
+    public final AtomicInteger banzaiHacks = new AtomicInteger(0);
+    public final AtomicInteger atlasHacks = new AtomicInteger(0);
 
     private final Room room;
     private final TaskScheduler scheduler;
@@ -39,10 +43,8 @@ public class ExoGame extends ExoTickable implements Runnable {
         this.room = room;
         this.scheduler = SmartFoxServer.getInstance().getTaskScheduler();
 
-        timeLimit =
-                room.getVariable("mode").getStringValue().equals("team")
-                        ? ExoProps.getTeamTime()
-                        : ExoProps.getSoloTime();
+        teamRoom = room.getVariable("mode").getStringValue().equals("team");
+        timeLimit = teamRoom ? ExoProps.getTeamTime() : ExoProps.getSoloTime();
 
         init();
     }
@@ -50,6 +52,8 @@ public class ExoGame extends ExoTickable implements Runnable {
     public void init() {
         queueTime = ExoProps.getQueueWait();
         gameTime = 0f;
+        banzaiHacks.set(0);
+        atlasHacks.set(0);
 
         boolean reinit = room.containsVariable("stop");
 
@@ -77,7 +81,7 @@ public class ExoGame extends ExoTickable implements Runnable {
 
         if (reinit) {
             for (User u : room.getPlayersList()) {
-                spawnPlayer(u.getPlayerId());
+                spawnPlayer(u);
             }
         }
     }
@@ -101,17 +105,56 @@ public class ExoGame extends ExoTickable implements Runnable {
         }
     }
 
-    public void spawnPlayer(int id) {
-        world.spawnPlayer(id);
+    public void spawnPlayer(User user) {
+        world.spawnPlayer(user);
+
+        int imbalance =
+                room.getVariable("imbalance").getIntValue()
+                        + (user.getVariable("faction").getStringValue().equals("banzai") ? 1 : -1);
+
+        SFSRoomVariable imbalanceVariable = new SFSRoomVariable("imbalance", imbalance);
+        imbalanceVariable.setHidden(true);
+        setVariables(List.of(imbalanceVariable));
 
         if (room.getPlayersList().size() >= ExoProps.getMinPlayers()) {
             if (room.getVariable("state").getStringValue().equals("wait_for_min_players")) {
                 setVariables(List.of(new SFSRoomVariable("state", "countdown")));
+                prime();
                 // client state update targets 8 Hz. i think that's too infrequent, so let's
                 // start at 20 Hz and go from there
                 gameHandle = scheduler.scheduleAtFixedRate(this, 0, 50, TimeUnit.MILLISECONDS);
             }
         }
+    }
+
+    public void removePlayer(User user) {
+        world.removePlayer(user);
+
+        int imbalance =
+                room.getVariable("imbalance").getIntValue()
+                        - (user.getVariable("faction").getStringValue().equals("banzai") ? 1 : -1);
+
+        SFSRoomVariable imbalanceVariable = new SFSRoomVariable("imbalance", imbalance);
+        imbalanceVariable.setHidden(true);
+        setVariables(List.of(imbalanceVariable));
+
+        if (room.getPlayersList().size() < ExoProps.getMinPlayers()
+                || (teamRoom && (imbalance > 1 || imbalance < -1))) {
+            if (room.getVariable("state").getStringValue().equals("countdown")) {
+                gameHandle.cancel(false);
+                if (queueTime == 0f) {
+                    // whoops, too late, carry on
+                    gameHandle = scheduler.scheduleAtFixedRate(this, 50, 50, TimeUnit.MILLISECONDS);
+                } else {
+                    setVariables(List.of(new SFSRoomVariable("state", "wait_for_min_players")));
+                    queueTime = ExoProps.getQueueWait();
+                }
+            }
+        }
+    }
+
+    public int addTeamHack(boolean banzai) {
+        return (banzai ? banzaiHacks : atlasHacks).incrementAndGet();
     }
 
     public void stop(String reason) {
@@ -129,11 +172,11 @@ public class ExoGame extends ExoTickable implements Runnable {
                                         - ((ExoPlayer) a.getProperty("ExoPlayer"))
                                                 .getHacks())); // sort by descending hacks
         int mostHacks = ((ExoPlayer) sortedUsers.get(0).getProperty("ExoPlayer")).getHacks();
+        boolean banzaiWon = banzaiHacks.get() > atlasHacks.get();
+        boolean atlasWon = atlasHacks.get() > banzaiHacks.get();
 
         ISFSObject sendSummaryParams = new SFSObject();
 
-        int banzaiTotal = 0;
-        int atlasTotal = 0;
         for (User user : sortedUsers) {
             if (user != null) {
                 ISFSObject userSummary = new SFSObject();
@@ -141,22 +184,17 @@ public class ExoGame extends ExoTickable implements Runnable {
                 String tegID = (String) user.getProperty("tegid");
                 ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
                 int hacks = player.getHacks();
+                boolean banzai = user.getVariable("faction").getStringValue().equals("banzai");
 
                 userSummary.putInt("nCaps", hacks);
                 userSummary.putInt("nFalls", player.getCrashes());
                 userSummary.putInt("nSaves", 0); // UNUSED: does nothing, don't know what it is
 
-                if (user.getVariable("faction").getStringValue().equals("banzai")) {
-                    banzaiTotal += hacks;
-                } else {
-                    atlasTotal += hacks;
-                }
-
                 int award = 0;
                 award = ExoProps.getCreditsParticipation(); // participation
                 award += hacks * ExoProps.getCreditsPerHack(); // hacks
-                if (hacks == mostHacks) {
-                    // TODO: team winning condition
+                if ((teamRoom && ((banzai && banzaiWon) || (!banzai && atlasWon)))
+                        || (!teamRoom && hacks == mostHacks)) {
                     award += ExoProps.getCreditsWin(); // winning
                 }
 
@@ -189,8 +227,8 @@ public class ExoGame extends ExoTickable implements Runnable {
             }
         }
 
-        sendSummaryParams.putInt("BanzaiTotal", banzaiTotal);
-        sendSummaryParams.putInt("AtlasTotal", atlasTotal);
+        sendSummaryParams.putInt("BanzaiTotal", banzaiHacks.get());
+        sendSummaryParams.putInt("AtlasTotal", atlasHacks.get());
 
         int mapId = (int) (Math.random() * ExoMapManager.getMapCount()) + 1;
         setVariables(
@@ -215,10 +253,9 @@ public class ExoGame extends ExoTickable implements Runnable {
             if (queueTime == 0f) {
                 setVariables(List.of(new SFSRoomVariable("state", "play")));
 
+                world.prime();
                 for (User user : room.getPlayersList()) {
-                    ((ExoPlayer) user.getProperty("ExoPlayer"))
-                            .prime(); // otherwise, a long lobby queue can lead to immediate break
-                    // out of crash sphere
+                    ((ExoPlayer) user.getProperty("ExoPlayer")).prime();
                 }
 
                 if (world.map.scale != 0f) {
@@ -247,19 +284,43 @@ public class ExoGame extends ExoTickable implements Runnable {
 
             if (flooredGameTime > (double) timeLimit) {
                 stop("timeout");
-            } else if (room.getPlayersList().size() < ExoProps.getMinPlayers()) {
+            } else if (room.getPlayersList().size() < 2) {
                 stop("playersleft");
-            } // TODO: team termination circumstances
-            else {
-                boolean maxedCaptures = false;
+            } else {
+                int hackLimit = room.getVariable("hackLimit").getIntValue();
+                boolean maxedCaptures =
+                        teamRoom
+                                && (banzaiHacks.get() >= hackLimit
+                                        || atlasHacks.get() >= hackLimit);
+                int remainingBanzai = 0;
+                int remainingAtlas = 0;
                 for (User user : room.getPlayersList()) {
-                    if (((ExoPlayer) user.getProperty("ExoPlayer")).getHacks() >= 20) {
-                        maxedCaptures = true;
-                        break;
+                    if (teamRoom) {
+                        if (user.getVariable("faction").getStringValue().equals("banzai")) {
+                            remainingBanzai++;
+                        } else {
+                            remainingAtlas++;
+                        }
+                    } else {
+                        if (((ExoPlayer) user.getProperty("ExoPlayer")).getHacks() >= hackLimit) {
+                            maxedCaptures = true;
+                            break;
+                        }
                     }
                 }
                 if (maxedCaptures) {
                     stop("capturelimit");
+                } else if (teamRoom) {
+                    if (remainingBanzai == 0) {
+                        stop("banzaileft");
+                    } else if (remainingAtlas == 0) {
+                        stop("atlasleft");
+                    } else {
+                        int imbalance = remainingBanzai - remainingAtlas;
+                        if (imbalance > 1 || imbalance < -1) {
+                            stop("teamimbalance");
+                        }
+                    }
                 }
             }
         } else {

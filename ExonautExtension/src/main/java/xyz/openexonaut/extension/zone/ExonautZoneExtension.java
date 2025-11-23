@@ -41,14 +41,13 @@ public class ExonautZoneExtension extends SFSExtension {
         ExoMapManager.init(
                 Paths.get(getCurrentFolder(), "worlds"),
                 Integer.parseInt(props.getProperty("mapCount")),
-                Boolean.parseBoolean(props.getProperty("debugGFX"))
-                        ? Math.max(0f, Float.parseFloat(props.getProperty("debugGFXScale")))
-                        : 0f);
+                Math.max(0f, Float.parseFloat(props.getProperty("debugGFXScale"))));
         ExoDefs.init();
 
         addRequestHandler("findRoom", FindRoomReqHandler.class);
 
         addEventHandler(SFSEventType.USER_LOGIN, UserLoginHandler.class);
+        addEventHandler(SFSEventType.USER_LOGOUT, UserLogoutHandler.class);
         addEventHandler(SFSEventType.USER_JOIN_ZONE, UserJoinZoneHandler.class);
 
         trace(ExtensionLogLevel.INFO, "Exonaut Zone Extension init finished");

@@ -5,7 +5,14 @@ import com.smartfoxserver.v2.entities.data.*;
 public abstract class ExoTickable {
     private long lastNano = System.nanoTime();
 
-    // return value: seconds since last prime or tick. shall not cause other effects.
+    // return value: seconds since last prime or tick (does not affect that value!)
+    // shall not cause other effects.
+    public float time() {
+        return (System.nanoTime() - lastNano) / 1_000_000_000f;
+    }
+
+    // return value: seconds since last prime or tick.
+    // shall not cause other effects.
     public float prime() {
         long nano = System.nanoTime();
         float deltaTime = (nano - lastNano) / 1_000_000_000f;

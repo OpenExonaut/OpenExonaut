@@ -7,6 +7,8 @@ import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoItemSpawner {
     public static final float radius = 4f;
+    public static final float maxHeight = 24f;
+    public static final float halfMaxHeight = maxHeight / 2f;
 
     public final ExoPickupEnum type;
     public final float respawnTime;
@@ -14,7 +16,7 @@ public class ExoItemSpawner {
     public final float y;
 
     private boolean finalized = false;
-    private float height = 24f;
+    private float height = maxHeight;
 
     public ExoItemSpawner(ExoPickupEnum type, float respawnTime, float x, float y) {
         this.type = type;

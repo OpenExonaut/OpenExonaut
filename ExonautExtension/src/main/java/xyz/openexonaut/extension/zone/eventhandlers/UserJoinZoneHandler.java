@@ -11,6 +11,10 @@ public class UserJoinZoneHandler extends BaseServerEventHandler {
     public void handleServerEvent(ISFSEvent event) {
         User user = (User) event.getParameter(SFSEventParam.USER);
 
+        trace(
+                ExtensionLogLevel.DEBUG,
+                String.format("zone join from %s (id %d)", user.getName(), user.getId()));
+
         ExoEntryUtils.initUser(user, getParentExtension().getParentZone());
     }
 }
