@@ -164,7 +164,7 @@ mongoClient.connect((err) => {
               maxAge: date.valueOf() - Date.now(),
             });
             res.cookie('logged', true);
-            res.redirect(config.httpserver.url);
+            res.redirect('/');
           }
         })
         .catch((e) => {
@@ -238,7 +238,7 @@ mongoClient.connect((err) => {
           res.cookie('logged', true, {
             maxAge: date.valueOf() - Date.now(),
           });
-          res.redirect(config.httpserver.url);
+          res.redirect('/');
         })
         .catch((e) => {
           console.log(e);
