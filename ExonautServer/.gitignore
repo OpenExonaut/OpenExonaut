@@ -9,3 +9,4 @@ static/*
 !static/fonts/*
 !static/js/
 !static/js/*
+!static/favicon.ico
