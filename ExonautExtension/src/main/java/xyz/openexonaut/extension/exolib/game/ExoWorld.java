@@ -527,9 +527,11 @@ public class ExoWorld extends ExoTickable {
                                 bodyPartCenter.x,
                                 bodyPartCenter.y);
 
-                        if (raycastHandler.result.id == playerFixtureId) {
-                            blocked = false;
-                            break;
+                        if (raycastHandler.result != null) {
+                            if (raycastHandler.result.id == playerFixtureId) {
+                                blocked = false;
+                                break;
+                            }
                         }
                     }
 
