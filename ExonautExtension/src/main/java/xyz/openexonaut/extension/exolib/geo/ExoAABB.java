@@ -62,9 +62,6 @@ public class ExoAABB extends ExoShape {
     // https://gamedev.stackexchange.com/a/178154
     @Override
     public boolean testCircle(float x, float y, float radius, float radiusSquared) {
-        // circle center in AABB (original algorithm does not count fully-inside circles)
-        if (x >= minX && x <= maxX && y >= minY && y <= maxY) return true;
-
         float distanceX = x - center.x;
         float distanceY = y - center.y;
 
