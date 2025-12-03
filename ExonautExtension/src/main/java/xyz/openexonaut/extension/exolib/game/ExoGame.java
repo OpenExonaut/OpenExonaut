@@ -42,7 +42,6 @@ public class ExoGame extends ExoTickable implements Runnable {
     public ExoGame(Room room) {
         this.room = room;
         this.scheduler = SmartFoxServer.getInstance().getTaskScheduler();
-
         teamRoom = room.getVariable("mode").getStringValue().equals("team");
         timeLimit = teamRoom ? ExoProps.getTeamTime() : ExoProps.getSoloTime();
 
@@ -98,10 +97,6 @@ public class ExoGame extends ExoTickable implements Runnable {
             peek.canvas.removeAll();
             peek = null;
             frame.dispose();
-        }
-        if (world != null) {
-            world.destroy();
-            world = null;
         }
     }
 
@@ -223,7 +218,7 @@ public class ExoGame extends ExoTickable implements Runnable {
                     userSummary.putSFSObject("Missions", new SFSObject());
                 }
 
-                sendSummaryParams.putSFSObject(String.valueOf(user.getPlayerId()), userSummary);
+                sendSummaryParams.putSFSObject(String.valueOf(user.getPlayerId(room)), userSummary);
             }
         }
 
@@ -242,8 +237,8 @@ public class ExoGame extends ExoTickable implements Runnable {
     }
 
     @Override
-    public float tick(ISFSArray eventQueue) {
-        float deltaTime = super.tick(eventQueue);
+    public float tick(ISFSArray eventQueue, Room room) {
+        float deltaTime = super.tick(eventQueue, room);
 
         if (queueTime > 0f) {
             double oldQueueTime = Math.ceil(queueTime);
@@ -280,7 +275,7 @@ public class ExoGame extends ExoTickable implements Runnable {
                 setVariables(List.of(new SFSRoomVariable("time", (int) flooredGameTime)));
             }
 
-            world.tick(eventQueue);
+            world.tick(eventQueue, room);
 
             if (flooredGameTime > (double) timeLimit) {
                 stop("timeout");
@@ -336,9 +331,20 @@ public class ExoGame extends ExoTickable implements Runnable {
 
     @Override
     public void run() {
-        ISFSArray eventQueue = new SFSArray();
-        tick(eventQueue);
-        ExoSendUtils.sendEventArrayToAll(room, eventQueue);
+        try {
+            ISFSArray eventQueue = new SFSArray();
+            tick(eventQueue, room);
+            ExoSendUtils.sendEventArrayToAll(room, eventQueue);
+        } catch (ExoRuntimeException e) {
+            room.getExtension()
+                    .handleInternalMessage(
+                            "warnLog",
+                            new ExoRuntimeException("room run sanitization exception", e));
+        } catch (Exception e) {
+            room.getExtension()
+                    .handleInternalMessage(
+                            "errorLog", new ExoRuntimeException("room run error", e));
+        }
     }
 
     private void setVariables(List<RoomVariable> variables) {
@@ -373,7 +379,18 @@ public class ExoGame extends ExoTickable implements Runnable {
 
         @Override
         public void run() {
-            repaint();
+            try {
+                repaint();
+            } catch (ExoRuntimeException e) {
+                room.getExtension()
+                        .handleInternalMessage(
+                                "warnLog",
+                                new ExoRuntimeException("room evt sanitization exception", e));
+            } catch (Exception e) {
+                room.getExtension()
+                        .handleInternalMessage(
+                                "errorLog", new ExoRuntimeException("room evt error", e));
+            }
         }
     }
 }

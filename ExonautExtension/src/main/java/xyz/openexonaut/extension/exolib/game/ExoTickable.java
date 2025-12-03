@@ -1,5 +1,6 @@
 package xyz.openexonaut.extension.exolib.game;
 
+import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.data.*;
 
 public abstract class ExoTickable {
@@ -22,7 +23,7 @@ public abstract class ExoTickable {
     }
 
     // return value: seconds since last prime or tick
-    public float tick(ISFSArray eventQueue) {
+    public float tick(ISFSArray eventQueue, Room room) {
         return prime();
     }
 }

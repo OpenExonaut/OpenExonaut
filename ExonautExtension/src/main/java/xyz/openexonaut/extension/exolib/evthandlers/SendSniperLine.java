@@ -51,7 +51,7 @@ public class SendSniperLine {
                                     player));
 
             ExoSendUtils.sendEventObjectToAll(
-                    room, ExoParamUtils.serialize(args, player.user.getPlayerId()));
+                    room, ExoParamUtils.serialize(args, player.user.getPlayerId(room)));
         }
     }
 }

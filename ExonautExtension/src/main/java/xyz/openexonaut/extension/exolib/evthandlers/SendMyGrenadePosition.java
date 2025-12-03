@@ -43,7 +43,7 @@ public class SendMyGrenadePosition {
                             new ExoGrenade(args.num, player, args.type == 1 ? 6 : 9));
 
             ExoSendUtils.sendEventObjectToAll(
-                    room, ExoParamUtils.serialize(args, player.user.getPlayerId()));
+                    room, ExoParamUtils.serialize(args, player.user.getPlayerId(room)));
         }
     }
 }

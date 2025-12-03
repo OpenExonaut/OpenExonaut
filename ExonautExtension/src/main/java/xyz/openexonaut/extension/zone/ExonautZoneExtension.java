@@ -42,7 +42,6 @@ public class ExonautZoneExtension extends SFSExtension {
                 Paths.get(getCurrentFolder(), "worlds"),
                 Integer.parseInt(props.getProperty("mapCount")),
                 Math.max(0f, Float.parseFloat(props.getProperty("debugGFXScale"))));
-        ExoDefs.init();
 
         addRequestHandler("findRoom", FindRoomReqHandler.class);
 
@@ -55,9 +54,7 @@ public class ExonautZoneExtension extends SFSExtension {
 
     @Override
     public void destroy() {
-        ExoMapManager.destroy();
         ExoDB.destroy();
-        ExoDefs.destroy();
         super.destroy();
     }
 }

@@ -20,7 +20,8 @@ public class SendTaunt {
             ErrorReceipt.handle(room, player, params, evtName);
         } else {
             ExoSendUtils.sendEventObjectToAll(
-                    room, ExoParamUtils.serialize(new SendTaunt(num), player.user.getPlayerId()));
+                    room,
+                    ExoParamUtils.serialize(new SendTaunt(num), player.user.getPlayerId(room)));
         }
     }
 }

@@ -4,9 +4,6 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
-import com.badlogic.gdx.math.*;
-import com.badlogic.gdx.physics.box2d.*;
-
 import com.smartfoxserver.v2.*;
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.entities.data.*;
@@ -17,6 +14,7 @@ import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.evthandlers.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
+import xyz.openexonaut.extension.exolib.physics.*;
 import xyz.openexonaut.extension.exolib.resources.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
@@ -36,13 +34,9 @@ public class ExoPlayer extends ExoTickable {
     @SuppressWarnings("unused")
     private int fuelConsumed, hacksInvisible, hacksSpeed, hacksDamageBoost, hacksArmorBoost;
 
-    private Body activeBody = null;
-    private Body standingBody = null;
-    private Body crouchingBody = null;
-
-    static {
-        Box2D.init();
-    }
+    private ExoBody activeBody = null;
+    private ExoBody standingBody = null;
+    private ExoBody crouchingBody = null;
 
     public ExoPlayer(User user) {
         this.user = user;
@@ -112,15 +106,15 @@ public class ExoPlayer extends ExoTickable {
         return suit;
     }
 
-    public Body getBody() {
+    public ExoBody getBody() {
         return activeBody;
     }
 
-    public Body getStandingBody() {
+    public ExoBody getStandingBody() {
         return standingBody;
     }
 
-    public Body getCrouchingBody() {
+    public ExoBody getCrouchingBody() {
         return crouchingBody;
     }
 
@@ -136,27 +130,27 @@ public class ExoPlayer extends ExoTickable {
         this.fuelConsumed += fuelConsumed;
     }
 
-    public void setBodies(Body standingBody, Body crouchingBody) {
+    public void setBodies(ExoBody standingBody, ExoBody crouchingBody) {
         this.standingBody = standingBody;
         this.crouchingBody = crouchingBody;
         activeBody = standingBody;
     }
 
     @Override
-    public float tick(ISFSArray eventQueue) {
-        float deltaTime = super.tick(eventQueue);
+    public float tick(ISFSArray eventQueue, Room room) {
+        float deltaTime = super.tick(eventQueue, room);
 
         if (isSmall()) {
-            crouchingBody.setActive(true);
-            standingBody.setActive(false);
+            crouchingBody.active = true;
+            standingBody.active = false;
             activeBody = crouchingBody;
         } else {
-            standingBody.setActive(true);
-            crouchingBody.setActive(false);
+            standingBody.active = true;
+            crouchingBody.active = false;
             activeBody = standingBody;
         }
 
-        activeBody.setTransform(new Vector2(getX(), getY()), 0f);
+        activeBody.setPosition(new Exo2DVector(getX(), getY()));
 
         List<UserVariable> variableChanges = new ArrayList<>();
 
@@ -189,7 +183,7 @@ public class ExoPlayer extends ExoTickable {
             if (boostTimer == 0f) {
                 eventQueue.addSFSObject(
                         ExoParamUtils.serialize(
-                                new SendPickupComplete(getBoost()), user.getPlayerId()));
+                                new SendPickupComplete(getBoost()), user.getPlayerId(room)));
 
                 variableChanges.add(new SFSUserVariable("boost", (Integer) (-1)));
             }
@@ -199,7 +193,7 @@ public class ExoPlayer extends ExoTickable {
             if (teamBoostTimer == 0f) {
                 eventQueue.addSFSObject(
                         ExoParamUtils.serialize(
-                                new SendPickupComplete(getTeamBoost()), user.getPlayerId()));
+                                new SendPickupComplete(getTeamBoost()), user.getPlayerId(room)));
 
                 variableChanges.add(new SFSUserVariable("teamBoost", (Integer) (-1)));
             }
@@ -251,14 +245,14 @@ public class ExoPlayer extends ExoTickable {
         g.fillRect(drawCenter.x - halfScale, drawCenter.y - halfScale, scaleInt, scaleInt);
     }
 
-    public void bulletHit(ExoBullet bullet, int where, Room room, ISFSArray eventQueue) {
+    public void bulletHit(ExoBullet bullet, ExoBodyPart where, Room room, ISFSArray eventQueue) {
         hit(
                 bullet.player,
                 bullet.num,
                 bullet.weaponId,
                 bullet.damage,
                 bullet.damageModifier,
-                where == 1,
+                where.equals(ExoBodyPart.HEAD),
                 room,
                 eventQueue);
     }
@@ -304,8 +298,8 @@ public class ExoPlayer extends ExoTickable {
         if (health <= 0f) {
             eventQueue.addSFSObject(
                     ExoParamUtils.serialize(
-                            new SendCaptured(bnum, sender.user.getPlayerId() - 1),
-                            user.getPlayerId() - 1));
+                            new SendCaptured(bnum, sender.user.getPlayerId(room) - 1),
+                            user.getPlayerId(room) - 1));
 
             crashes++;
             sender.addHack(damageModifierAttackOnly, room);
@@ -315,7 +309,8 @@ public class ExoPlayer extends ExoTickable {
             setVariables(
                     List.of(
                             new SFSUserVariable("capturedMethod", (Integer) weaponId),
-                            new SFSUserVariable("capturedBy", (Integer) sender.user.getPlayerId()),
+                            new SFSUserVariable(
+                                    "capturedBy", (Integer) sender.user.getPlayerId(room)),
                             new SFSUserVariable("avatarState", "captured"),
                             new SFSUserVariable("health", (Float) health)));
         } else {
@@ -323,11 +318,11 @@ public class ExoPlayer extends ExoTickable {
                     ExoParamUtils.serialize(
                             new SendDamage(
                                     bnum,
-                                    sender.user.getPlayerId() - 1,
+                                    sender.user.getPlayerId(room) - 1,
                                     damage,
                                     headshot ? 1 : 0,
                                     health),
-                            user.getPlayerId() - 1));
+                            user.getPlayerId(room) - 1));
 
             healthRefillTimer = suit.Regen_Delay;
             setVariables(List.of(new SFSUserVariable("health", (Float) health)));
@@ -376,14 +371,14 @@ public class ExoPlayer extends ExoTickable {
         }
     }
 
-    public void setBoost(int type, int time, ISFSArray eventQueue) {
-        tick(eventQueue); // clock starts now, not when the last tick happened
+    public void setBoost(int type, int time, ISFSArray eventQueue, Room room) {
+        tick(eventQueue, room); // clock starts now, not when the last tick happened
         boostTimer = (float) time;
         setVariables(List.of(new SFSUserVariable("boost", (Integer) type)));
     }
 
-    public void setTeamBoost(int type, int time, ISFSArray eventQueue) {
-        tick(eventQueue); // clock starts now, not when the last tick happened
+    public void setTeamBoost(int type, int time, ISFSArray eventQueue, Room room) {
+        tick(eventQueue, room); // clock starts now, not when the last tick happened
         teamBoostTimer = (float) time;
         setVariables(List.of(new SFSUserVariable("teamBoost", (Integer) type)));
     }

@@ -8,25 +8,17 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 
-import com.badlogic.gdx.math.*;
-import com.badlogic.gdx.physics.box2d.*;
-
 import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.geo.*;
 import xyz.openexonaut.extension.exolib.map.*;
+import xyz.openexonaut.extension.exolib.physics.*;
 
 public final class ExoMapManager {
-    static {
-        Box2D.init();
-    }
-
     private static ExoMap[] maps = new ExoMap[0];
 
     private ExoMapManager() {}
 
     public static void init(Path worldsFolder, int mapCount, float debugGFXScale) {
-        destroy();
-
         maps = new ExoMap[mapCount];
 
         // world_0 exists, but is the tutorial world, and the tutorial is always run locally
@@ -41,15 +33,6 @@ public final class ExoMapManager {
 
     public static ExoMap getMap(int mapId) {
         return maps[mapId - 1];
-    }
-
-    public static void destroy() {
-        for (ExoMap map : maps) {
-            if (map != null) {
-                map.destroy();
-            }
-        }
-        maps = new ExoMap[0];
     }
 
     private static ExoMap load(Path path, float debugGFXScale) {
@@ -69,15 +52,9 @@ public final class ExoMapManager {
                         get3DVector(info.get("father_scale")),
                         get3DVector(info.get("father_position")));
 
-        FixtureDef[] wallFixtureDefs = new FixtureDef[segments.length];
+        ExoFixtureDef[] wallFixtureDefs = new ExoFixtureDef[segments.length];
         for (int i = 0; i < wallFixtureDefs.length; i++) {
-            EdgeShape shape = new EdgeShape();
-            shape.set(
-                    new Vector2(segments[i].vertexOne.x, segments[i].vertexOne.y),
-                    new Vector2(segments[i].vertexTwo.x, segments[i].vertexTwo.y));
-            wallFixtureDefs[i] = new FixtureDef();
-            wallFixtureDefs[i].shape = shape;
-            wallFixtureDefs[i].filter.categoryBits = (short) 0xffff;
+            wallFixtureDefs[i] = new ExoFixtureDef(segments[i]);
         }
 
         BufferedImage image = null;
@@ -252,37 +229,6 @@ public final class ExoMapManager {
                 if (segments.get(i).equals(segment)) return;
             }
             segments.add(segment);
-        }
-    }
-
-    private static class ExoLineSegment {
-        public final Exo2DVector vertexOne;
-        public final Exo2DVector vertexTwo;
-
-        public ExoLineSegment(Exo2DVector vertexOne, Exo2DVector vertexTwo) {
-            this.vertexOne = vertexOne;
-            this.vertexTwo = vertexTwo;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o instanceof ExoLineSegment) {
-                ExoLineSegment other = (ExoLineSegment) o;
-                return (vertexOne.equals(other.vertexOne) && vertexTwo.equals(other.vertexTwo))
-                        || (vertexOne.equals(other.vertexTwo) && vertexTwo.equals(other.vertexOne));
-            }
-            return false;
-        }
-
-        @Override
-        public int hashCode() {
-            if (vertexOne.equals(vertexTwo)) return vertexOne.hashCode(); // avoid 0 being common
-            return vertexOne.hashCode() ^ vertexTwo.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return String.format("{%s, %s}", vertexOne, vertexTwo);
         }
     }
 

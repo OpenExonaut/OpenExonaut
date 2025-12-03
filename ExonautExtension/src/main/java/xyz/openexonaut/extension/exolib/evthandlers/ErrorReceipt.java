@@ -9,7 +9,7 @@ import xyz.openexonaut.extension.exolib.resources.*;
 public class ErrorReceipt {
     public static void handle(Room room, ExoPlayer player, ISFSObject params, String evtName) {
         if (ExoProps.getInputDebug()) {
-            throw new RuntimeException(
+            throw new ExoRuntimeException(
                     String.format(
                             "unhandled event %d (%s) from sender %s (id %d)",
                             params.getInt("msgType"),

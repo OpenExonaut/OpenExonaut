@@ -39,16 +39,16 @@ public class SendActivatePickupEvent {
             ExoItem[] items =
                     (ExoItem[]) room.getExtension().handleInternalMessage("getItems", null);
 
-            items[args.pIdx].grabbed(tickArray);
+            items[args.pIdx].grabbed(tickArray, room);
 
             if (ExoPickupEnum.isIndividualBoost(args.pType)) {
-                player.setBoost(args.pType, args.eTime, tickArray);
+                player.setBoost(args.pType, args.eTime, tickArray, room);
             } else if (ExoPickupEnum.isTeamBoost(args.pType)) {
                 String faction = player.user.getVariable("faction").getStringValue();
                 for (User user : room.getPlayersList()) {
                     if (user.getVariable("faction").getStringValue().equals(faction)) {
                         ((ExoPlayer) user.getProperty("ExoPlayer"))
-                                .setTeamBoost(args.pType, args.eTime, tickArray);
+                                .setTeamBoost(args.pType, args.eTime, tickArray, room);
                     }
                 }
             }
@@ -58,7 +58,7 @@ public class SendActivatePickupEvent {
             }
 
             ExoSendUtils.sendEventObjectToAll(
-                    room, ExoParamUtils.serialize(args, player.user.getPlayerId()));
+                    room, ExoParamUtils.serialize(args, player.user.getPlayerId(room)));
         }
     }
 }

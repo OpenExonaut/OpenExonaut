@@ -33,12 +33,12 @@ public class SendOpponentInfo {
                         eventArray.addSFSObject(
                                 ExoParamUtils.serialize(
                                         new SendOpponentInfo(
-                                                user.getPlayerId(),
+                                                user.getPlayerId(room),
                                                 (int) opp.getHealth(),
                                                 opp.getBoostResponse(),
                                                 opp.getHacks(),
                                                 opp.getWeaponId()),
-                                        player.user.getPlayerId()));
+                                        player.user.getPlayerId(room)));
                     }
                 }
             }

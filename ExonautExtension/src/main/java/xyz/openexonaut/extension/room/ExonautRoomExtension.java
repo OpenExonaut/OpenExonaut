@@ -16,7 +16,13 @@ public class ExonautRoomExtension extends SFSExtension {
 
     @Override
     public void init() {
-        game = new ExoGame(getParentRoom());
+        try {
+            game = new ExoGame(getParentRoom());
+        } catch (ExoRuntimeException e) {
+            getLogger().warn("room init sanitization exception", e);
+        } catch (Exception e) {
+            getLogger().error("room init error", e);
+        }
 
         addEventHandler(SFSEventType.USER_JOIN_ROOM, UserJoinRoomHandler.class);
         addEventHandler(SFSEventType.USER_LEAVE_ROOM, UserLeaveRoomHandler.class);
@@ -88,6 +94,24 @@ public class ExonautRoomExtension extends SFSExtension {
         return game.addTeamHack(banzai);
     }
 
+    private Object warnLog(ExoRuntimeException e) {
+        if (e.getCause() != null) {
+            logger.warn(e.getMessage(), e.getCause());
+        } else {
+            logger.warn("unknown origin sanitization exception", e);
+        }
+        return null;
+    }
+
+    private Object errorLog(ExoRuntimeException e) {
+        if (e.getCause() != null) {
+            logger.error(e.getMessage(), e.getCause());
+        } else {
+            logger.error("unknown origin error", e);
+        }
+        return null;
+    }
+
     @Override
     public Object handleInternalMessage(String command, Object parameters) {
         switch (command) {
@@ -115,6 +139,10 @@ public class ExonautRoomExtension extends SFSExtension {
                 return explodeRocket((SendRocketExplode) parameters);
             case "addTeamHack":
                 return addTeamHack((Boolean) parameters);
+            case "warnLog":
+                return warnLog((ExoRuntimeException) parameters);
+            case "errorLog":
+                return errorLog((ExoRuntimeException) parameters);
             default:
                 throw new RuntimeException(
                         String.format("Invalid internal room message %s", command));
