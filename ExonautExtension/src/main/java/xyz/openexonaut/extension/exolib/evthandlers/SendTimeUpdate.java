@@ -23,7 +23,7 @@ public class SendTimeUpdate {
                                                 room.getExtension()
                                                         .handleInternalMessage("getTimeLimit", null)
                                         - room.getVariable("time").getIntValue()),
-                        player.user.getPlayerId()),
+                        player.user.getPlayerId(room)),
                 player.user);
     }
 }

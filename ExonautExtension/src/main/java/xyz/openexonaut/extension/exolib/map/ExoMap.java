@@ -2,12 +2,11 @@ package xyz.openexonaut.extension.exolib.map;
 
 import java.awt.*;
 
-import com.badlogic.gdx.physics.box2d.*;
-
 import xyz.openexonaut.extension.exolib.geo.*;
+import xyz.openexonaut.extension.exolib.physics.*;
 
 public class ExoMap {
-    public final FixtureDef[] wallFixtureDefs;
+    public final ExoFixtureDef[] wallFixtureDefs;
     public final Exo2DVector[] teamPlayerSpawns;
     public final Exo2DVector[] ffaPlayerSpawns;
     public final ExoItemSpawner[] teamItemSpawns;
@@ -19,12 +18,8 @@ public class ExoMap {
 
     private boolean finalizedItemSpawns = false;
 
-    static {
-        Box2D.init();
-    }
-
     public ExoMap(
-            FixtureDef[] wallFixtureDefs,
+            ExoFixtureDef[] wallFixtureDefs,
             Exo2DVector[] teamPlayerSpawns,
             Exo2DVector[] ffaPlayerSpawns,
             ExoItemSpawner[] teamItemSpawns,
@@ -50,13 +45,6 @@ public class ExoMap {
 
     public boolean finalized() {
         return finalizedItemSpawns;
-    }
-
-    public void destroy() {
-        for (FixtureDef wallFixtureDef : wallFixtureDefs) {
-            wallFixtureDef.shape.dispose();
-            wallFixtureDef.shape = null;
-        }
     }
 
     public void draw(Graphics g) {

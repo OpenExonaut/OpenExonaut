@@ -4,17 +4,24 @@ import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.entities.*;
 import com.smartfoxserver.v2.extensions.*;
 
+import xyz.openexonaut.extension.exolib.game.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class UserJoinZoneHandler extends BaseServerEventHandler {
     @Override
     public void handleServerEvent(ISFSEvent event) {
-        User user = (User) event.getParameter(SFSEventParam.USER);
+        try {
+            User user = (User) event.getParameter(SFSEventParam.USER);
 
-        trace(
-                ExtensionLogLevel.DEBUG,
-                String.format("zone join from %s (id %d)", user.getName(), user.getId()));
+            trace(
+                    ExtensionLogLevel.DEBUG,
+                    String.format("zone join from %s (id %d)", user.getName(), user.getId()));
 
-        ExoEntryUtils.initUser(user, getParentExtension().getParentZone());
+            ExoEntryUtils.initUser(user, getParentExtension().getParentZone());
+        } catch (ExoRuntimeException e) {
+            getLogger().warn("zone user join sanitization exception", e);
+        } catch (Exception e) {
+            getLogger().error("zone user join error", e);
+        }
     }
 }

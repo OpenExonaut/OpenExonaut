@@ -4,6 +4,7 @@ import java.lang.reflect.*;
 
 import com.smartfoxserver.v2.entities.data.*;
 
+import xyz.openexonaut.extension.exolib.game.*;
 import xyz.openexonaut.extension.exolib.resources.*;
 
 public final class ExoParamUtils {
@@ -37,7 +38,7 @@ public final class ExoParamUtils {
             SFSDataWrapper wrapper = params.get(paramName);
             if (wrapper == null) {
                 if (ExoProps.getInputDebug()) {
-                    throw new RuntimeException(String.format("param %s not found", paramName));
+                    throw new ExoRuntimeException(String.format("param %s not found", paramName));
                 }
                 return null;
             }
@@ -47,7 +48,7 @@ public final class ExoParamUtils {
                 values[i] = object;
             } else {
                 if (ExoProps.getInputDebug()) {
-                    throw new RuntimeException(
+                    throw new ExoRuntimeException(
                             String.format(
                                     "param %s type (%s) not match %s",
                                     paramName, paramType, object.getClass()));

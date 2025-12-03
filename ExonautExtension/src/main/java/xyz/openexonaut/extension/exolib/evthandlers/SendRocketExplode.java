@@ -29,7 +29,7 @@ public class SendRocketExplode {
             room.getExtension().handleInternalMessage("explodeRocket", args);
 
             ExoSendUtils.sendEventObjectToAll(
-                    room, ExoParamUtils.serialize(args, player.user.getPlayerId()));
+                    room, ExoParamUtils.serialize(args, player.user.getPlayerId(room)));
         }
     }
 }

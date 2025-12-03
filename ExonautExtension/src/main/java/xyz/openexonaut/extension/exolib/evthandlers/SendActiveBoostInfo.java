@@ -22,12 +22,12 @@ public class SendActiveBoostInfo {
         ExoItem[] items = (ExoItem[]) room.getExtension().handleInternalMessage("getItems", null);
         for (int i = 0; i < items.length; i++) {
             ExoItem item = items[i];
-            item.tick(tickArray); // report accurate times
+            item.tick(tickArray, room); // report accurate times
             if (!item.active()) {
                 responseArray.addSFSObject(
                         ExoParamUtils.serialize(
                                 new SendActiveBoostInfo(i, item.timeToRespawn()),
-                                player.user.getPlayerId()));
+                                player.user.getPlayerId(room)));
             }
         }
 

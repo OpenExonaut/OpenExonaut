@@ -21,7 +21,8 @@ public class SendChangeWeapon {
         } else {
             ExoSendUtils.sendEventObjectToAll(
                     room,
-                    ExoParamUtils.serialize(new SendChangeWeapon(idx), player.user.getPlayerId()));
+                    ExoParamUtils.serialize(
+                            new SendChangeWeapon(idx), player.user.getPlayerId(room)));
         }
     }
 }
