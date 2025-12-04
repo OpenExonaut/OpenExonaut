@@ -30,7 +30,7 @@ public class ExoCircle extends ExoShape {
             return new ExoLineTestResult(startX, startY, 0f);
 
         float a = ExoMathUtils.dot(dx, dy, dx, dy);
-        float b = 2 * (ExoMathUtils.dot(fX, fY, dx, dy));
+        float b = 2f * (ExoMathUtils.dot(fX, fY, dx, dy));
         float c = ExoMathUtils.dot(fX, fY, fX, fY) - radiusSquared;
 
         float discriminant = b * b - 4f * a * c;
