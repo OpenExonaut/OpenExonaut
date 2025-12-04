@@ -36,16 +36,16 @@ public class ExoLineSegment extends ExoShape {
         float bDotDPerp = dx * lenY - dy * lenX;
 
         // parallel
-        if (bDotDPerp == 0) return null;
+        if (bDotDPerp == 0f) return null;
 
         float cx = vertexOne.x - startX;
         float cy = vertexOne.y - startY;
 
         float t = (cx * lenY - cy * lenX) / bDotDPerp;
-        if (t < 0 || t > 1) return null;
+        if (t < 0f || t > 1f) return null;
 
         float u = (cx * dy - cy * dx) / bDotDPerp;
-        if (u < 0 || u > 1) return null;
+        if (u < 0f || u > 1f) return null;
 
         return new ExoLineTestResult(startX + t * dx, startY + t * dy, t * length);
     }
@@ -59,7 +59,7 @@ public class ExoLineSegment extends ExoShape {
         // start point in circle (original algorithm does not count fully-inside segments)
         if (fX * fX + fY * fY <= radiusSquared) return true;
 
-        float b = 2 * (ExoMathUtils.dot(fX, fY, lenX, lenY));
+        float b = 2f * (ExoMathUtils.dot(fX, fY, lenX, lenY));
         float c = ExoMathUtils.dot(fX, fY, fX, fY) - radiusSquared;
 
         float discriminant = b * b - quadrupleLenDotProduct * c;

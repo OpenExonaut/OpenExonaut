@@ -155,7 +155,8 @@ public class ExoWorld extends ExoTickable {
                 new Exo2DVector(bullet.velocityXComponent - x, bullet.velocityYComponent - y)
                         .withMagnitude(1000f);
 
-        ExoUserData raycastData = bulletRaycast(x, y, x + delta.x, y + delta.y, bullet.player);
+        ExoUserData raycastData =
+                bulletRaycast(x, y, x + delta.x, y + delta.y, bullet.player, true);
         if (raycastData != null) {
             if (raycastData.player != null) {
                 ISFSArray eventArray = new SFSArray();
@@ -347,7 +348,7 @@ public class ExoWorld extends ExoTickable {
         float deltaTime = super.tick(eventQueue, room);
 
         // TODO: does this adequately address the player tunneling problem?
-        simulateBullets(eventQueue, false);
+        simulateBullets(eventQueue, false, true);
 
         for (User user : room.getPlayersList()) {
             if (user != null) {
@@ -356,7 +357,8 @@ public class ExoWorld extends ExoTickable {
             }
         }
 
-        simulateBullets(eventQueue, true);
+        // bullet didn't move and walls didn't move, so don't check their intercollisions
+        simulateBullets(eventQueue, true, false);
 
         for (ExoItem item : items) {
             item.tick(eventQueue, room);
@@ -365,7 +367,8 @@ public class ExoWorld extends ExoTickable {
         return deltaTime;
     }
 
-    private void simulateBullets(ISFSArray eventQueue, boolean commitDistance) {
+    private void simulateBullets(
+            ISFSArray eventQueue, boolean commitDistance, boolean includeStatic) {
         List<ExoBullet> expiringBullets = new ArrayList<>(activeBullets.size());
         Map<ExoBullet, ExoUserData> playerHits = new HashMap<>();
 
@@ -389,7 +392,7 @@ public class ExoWorld extends ExoTickable {
             float y = bullet.getY();
 
             ExoUserData raycastData =
-                    bulletRaycast(x, y, x + raycastX, y + raycastY, bullet.player);
+                    bulletRaycast(x, y, x + raycastX, y + raycastY, bullet.player, includeStatic);
 
             if (raycastData != null) {
                 expiringBullets.add(bullet);
@@ -435,9 +438,15 @@ public class ExoWorld extends ExoTickable {
     }
 
     private ExoUserData bulletRaycast(
-            float startX, float startY, float endX, float endY, ExoPlayer shooter) {
+            float startX,
+            float startY,
+            float endX,
+            float endY,
+            ExoPlayer shooter,
+            boolean includeStatic) {
         ExoRaycastResult result =
-                world.rayCast(true, true, getWeaponTest(shooter), startX, startY, endX, endY);
+                world.rayCast(
+                        includeStatic, true, getWeaponTest(shooter), startX, startY, endX, endY);
 
         if (result.fixture != null) {
             return result.fixture.userData;
