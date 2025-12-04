@@ -1,8 +1,11 @@
 package xyz.openexonaut.extension.exolib.resources;
 
 import java.util.*;
+import java.util.regex.*;
 
 public final class ExoProps {
+    private static final String literalSemicolon = Pattern.quote(";");
+
     private static boolean inputDebug = false;
 
     private static float headshotMod = 0.25f;
@@ -15,8 +18,8 @@ public final class ExoProps {
     private static int maxHacksTeam = 40;
     private static int soloTime = 600;
     private static int teamTime = 900;
-    private static int queueWait = 20;
-    private static int minPlayers = 4;
+    private static float[] queueWait = {-1f, -1f, -1f, -1f, -1f, 20f, 20f, 20f, 20f};
+    private static float queueWaitLeastPlayers = 20f; // derived from queueWait
 
     private static int creditsParticipation = 5;
     private static int creditsPerHack = 5;
@@ -37,12 +40,21 @@ public final class ExoProps {
         maxHacksTeam = Integer.parseInt(props.getProperty("maxHacksTeam"));
         soloTime = Integer.parseInt(props.getProperty("soloTime"));
         teamTime = Integer.parseInt(props.getProperty("teamTime"));
-        queueWait = Integer.parseInt(props.getProperty("queueWait"));
-        minPlayers = Integer.parseInt(props.getProperty("minPlayers"));
 
         creditsParticipation = Integer.parseInt(props.getProperty("creditsParticipation"));
         creditsPerHack = Integer.parseInt(props.getProperty("creditsPerHack"));
         creditsWin = Integer.parseInt(props.getProperty("creditsWin"));
+
+        String[] queueWaitStrings = props.getProperty("queueWait").split(literalSemicolon);
+        boolean gotQueueWaitLeastPlayers = false;
+        queueWait = new float[queueWaitStrings.length];
+        for (int i = 0; i < queueWait.length; i++) {
+            queueWait[i] = Float.parseFloat(queueWaitStrings[i]);
+            if (!gotQueueWaitLeastPlayers && queueWait[i] >= 0f) {
+                queueWaitLeastPlayers = queueWait[i];
+                gotQueueWaitLeastPlayers = true;
+            }
+        }
     }
 
     public static boolean getInputDebug() {
@@ -85,12 +97,12 @@ public final class ExoProps {
         return teamTime;
     }
 
-    public static int getQueueWait() {
+    public static float[] getQueueWait() {
         return queueWait;
     }
 
-    public static int getMinPlayers() {
-        return minPlayers;
+    public static float getQueueWaitLeastPlayers() {
+        return queueWaitLeastPlayers;
     }
 
     public static int getCreditsParticipation() {

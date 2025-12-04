@@ -1,6 +1,6 @@
 package xyz.openexonaut.extension.exolib.geo;
 
-import xyz.openexonaut.extension.exolib.utils.ExoMathUtils;
+import xyz.openexonaut.extension.exolib.utils.*;
 
 public class ExoCircle extends ExoShape {
     public final Exo2DVector center;

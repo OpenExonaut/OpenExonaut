@@ -49,7 +49,7 @@ public class ExoGame extends ExoTickable implements Runnable {
     }
 
     public void init() {
-        queueTime = ExoProps.getQueueWait();
+        queueTime = ExoProps.getQueueWaitLeastPlayers();
         gameTime = 0f;
         banzaiHacks.set(0);
         atlasHacks.set(0);
@@ -72,8 +72,6 @@ public class ExoGame extends ExoTickable implements Runnable {
 
                 player.reset();
             }
-
-            queueTime += 10f;
         }
 
         world = new ExoWorld(ExoMapManager.getMap(room.getVariable("mapId").getIntValue()), room);
@@ -111,7 +109,9 @@ public class ExoGame extends ExoTickable implements Runnable {
         imbalanceVariable.setHidden(true);
         setVariables(List.of(imbalanceVariable));
 
-        if (room.getPlayersList().size() >= ExoProps.getMinPlayers()) {
+        float queueWaitForPlayerCount = ExoProps.getQueueWait()[room.getPlayersList().size()];
+        if (queueWaitForPlayerCount >= 0f) {
+            queueTime = Math.min(queueTime, queueWaitForPlayerCount);
             if (room.getVariable("state").getStringValue().equals("wait_for_min_players")) {
                 setVariables(List.of(new SFSRoomVariable("state", "countdown")));
                 prime();
@@ -133,7 +133,7 @@ public class ExoGame extends ExoTickable implements Runnable {
         imbalanceVariable.setHidden(true);
         setVariables(List.of(imbalanceVariable));
 
-        if (room.getPlayersList().size() < ExoProps.getMinPlayers()
+        if (ExoProps.getQueueWait()[room.getPlayersList().size()] < 0f
                 || (teamRoom && (imbalance > 1 || imbalance < -1))) {
             if (room.getVariable("state").getStringValue().equals("countdown")) {
                 gameHandle.cancel(false);
@@ -142,7 +142,7 @@ public class ExoGame extends ExoTickable implements Runnable {
                     gameHandle = scheduler.scheduleAtFixedRate(this, 50, 50, TimeUnit.MILLISECONDS);
                 } else {
                     setVariables(List.of(new SFSRoomVariable("state", "wait_for_min_players")));
-                    queueTime = ExoProps.getQueueWait();
+                    queueTime = ExoProps.getQueueWaitLeastPlayers();
                 }
             }
         }

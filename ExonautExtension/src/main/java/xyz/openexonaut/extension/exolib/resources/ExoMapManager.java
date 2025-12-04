@@ -4,9 +4,9 @@ import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
 import java.nio.file.*;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
+import java.util.regex.*;
 
 import xyz.openexonaut.extension.exolib.enums.*;
 import xyz.openexonaut.extension.exolib.geo.*;
@@ -14,6 +14,11 @@ import xyz.openexonaut.extension.exolib.map.*;
 import xyz.openexonaut.extension.exolib.physics.*;
 
 public final class ExoMapManager {
+    private static final String comma = Pattern.quote(",");
+    private static final String commaSpace = Pattern.quote(", ");
+    private static final String colonSpace = Pattern.quote(": ");
+    private static final String newline = Pattern.quote("\n");
+
     private static ExoMap[] maps = new ExoMap[0];
 
     private ExoMapManager() {}
@@ -99,13 +104,13 @@ public final class ExoMapManager {
     }
 
     private static ExoInt2DVector getInt2DVector(String property) {
-        String[] pairStrings = property.split(", ");
+        String[] pairStrings = property.split(commaSpace);
         return new ExoInt2DVector(
                 Integer.parseInt(pairStrings[0]), Integer.parseInt(pairStrings[1]));
     }
 
     private static Exo3DVector get3DVector(String property) {
-        String[] tripletStrings = property.split(", ");
+        String[] tripletStrings = property.split(commaSpace);
         return new Exo3DVector(
                 Float.parseFloat(tripletStrings[0]),
                 Float.parseFloat(tripletStrings[1]),
@@ -120,14 +125,14 @@ public final class ExoMapManager {
                             .strip()
                             .replace("\r", "")
                             .replace("\n\n", "\n")
-                            .split("\n");
+                            .split(newline);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         Map<String, String> info = new HashMap<>();
         for (String s : infoStrings) {
-            String[] pair = s.split(": ", 2);
+            String[] pair = s.split(colonSpace, 2);
             info.put(pair[0], pair[1]);
         }
 
@@ -207,7 +212,7 @@ public final class ExoMapManager {
 
     private static String[] readFbxExtract(Path path) {
         try {
-            return Files.readString(path).replace("\r", "").replace("\n", "").split(",");
+            return Files.readString(path).replace("\r", "").replace("\n", "").split(comma);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -215,7 +220,7 @@ public final class ExoMapManager {
 
     private static String[] readTextAsset(Path path) {
         try {
-            return Files.readString(path).replace("\r", "").replace("\n", ", ").split(", ");
+            return Files.readString(path).replace("\r", "").replace("\n", ", ").split(commaSpace);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
