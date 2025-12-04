@@ -54,12 +54,9 @@ soloTime=600
 teamTime=900
 
 # How many seconds to wait between meeting minimum player count and spawning players.
-# Integer, 20 in vanilla
-queueWait=20
-
-# How many players needed to initiate the queueWait timer.
-# Integer, 4 in vanilla
-minPlayers=4
+# The nth element (0-indexed) is used for n players in the room. -1 means do not start.
+# String of semicolon-separated floats, "-1;-1;-1;-1;-1;20;20;20;20" in vanilla
+queueWait=-1;-1;-1;-1;-1;20;20;20;20
 
 # How many credits and XP to award any player present at the end.
 # Integer, 5 in vanilla
