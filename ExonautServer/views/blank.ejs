@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>OpenExonaut</title>
+  <body>
+    <script>
+      const added = window.location.search.includes('added');
+      const reset = window.location.search.includes('reset');
+      const expired = window.location.search.includes('expired');
+      if (added) window.alert("Email address added! Re-open the game and log in.");
+      else if (reset) window.alert("Reset succeeded! Re-open the game and log in.");
+      else if (expired) window.alert("The emailed form expired. Please request it again.");
+    </script>
+  </body>
+</html>

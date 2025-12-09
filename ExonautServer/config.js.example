@@ -1,12 +1,63 @@
 var config = {};
 config.httpserver = {};
 config.sockpol = {};
+config.email = {};
 
 config.httpserver.port = 80;
-config.httpserver.mongouri = "mongodb://admin:password@127.0.0.1:27017";
+config.httpserver.mongouri = 'mongodb://admin:password@127.0.0.1:27017';
+config.httpserver.url = 'http://127.0.0.1';
 
 config.sockpol.enable = true;
 config.sockpol.port = 843;
-config.sockpol.file = "static/crossdomain.xml";
+config.sockpol.file = 'static/crossdomain.xml';
+
+config.email.name = 'OpenExonaut';
+config.email.address = 'example@gmail.com';
+// this object is passed to nodemailer's createTransport function. this example is gmail-specific.
+config.email.transport = {
+  service: 'gmail',
+  auth: {
+    user: 'example@gmail.com',
+    pass: 'password',
+  },
+};
+// preserve the parameters.
+config.email.confirm = {
+  subject: function (username) {
+    return `${config.email.name} Email Confirmation`;
+  },
+  text: function (username, url) {
+    return `Hello, ${username}! This is an email requested to confirm your email address. If you did not request email confirmation, disregard this message. If you did, click on the following link within 24 hours of your request: ${url}`;
+  },
+  html: function (username, url) {
+    return `<p>Hello, ${username}! This is an email requested to confirm your email address.</p><p>If you did not request email confirmation, disregard this message.</p><p>If you did, click on the following link within 24 hours of your request: <a href="${url}">${url}</a></p>`;
+  },
+};
+config.email.usernames = {
+  subject: function () {
+    return `${config.email.name} Username List`;
+  },
+  text: function (usernameArray) {
+    const list = usernameArray.join('", "');
+    return `Hello! This is an email requested for listing your usernames. If you did not request your usernames, disregard this message. If you did, here they are: "${list}"`;
+  },
+  html: function (usernameArray) {
+    const list = usernameArray.reduce((accumulator, current) => {
+      return accumulator + `<li>${current}</li>`;
+    }, '');
+    return `<p>Hello! This is an email requested for listing your usernames.</p><p>If you did not request your usernames, disregard this message.</p><p>If you did, here they are:</p><ul>${list}</ul>`;
+  },
+};
+config.email.recovery = {
+  subject: function (username) {
+    return `${config.email.name} Account Recovery`;
+  },
+  text: function (username, url) {
+    return `Hello, ${username}! This is an email requested for recovering your account. If you did not request email account recovery, disregard this message. If you did, click on the following link within 24 hours of your request: ${url}`;
+  },
+  html: function (username, url) {
+    return `<p>Hello, ${username}! This is an email requested for recovering your account.</p><p>If you did not request email account recovery, disregard this message.</p><p>If you did, click on the following link within 24 hours of your request: <a href="${url}">${url}</a></p>`;
+  },
+};
 
 module.exports = config;

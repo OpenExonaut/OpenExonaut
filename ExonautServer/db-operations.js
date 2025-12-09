@@ -75,6 +75,15 @@ var newUserFunction = function (
         dodgeCount: 0,
         timesOffended: 0,
       },
+      email: {
+        address: '',
+        confirmed: false,
+      },
+      reset: {
+        token: `${crypto.randomBytes(48).toString('base64url')}`,
+        expires_at: new Date(),
+        renewable: false,
+      },
     };
     const opt = { upsert: true };
     const update = { $set: playerFile };

@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
 const cors = require('cors');
+const nodemailer = require('nodemailer');
 
 const getRequest = require('./get-requests.js');
 const postRequest = require('./post-requests.js');
@@ -42,6 +43,8 @@ try {
   } else throw err;
   process.exit(1);
 }
+
+const transport = nodemailer.createTransport(config.email.transport);
 
 let gameData;
 try {
@@ -115,6 +118,53 @@ mongoClient.connect((err) => {
     res.render('login');
   });
 
+  app.get('/blank', (req, res) => {
+    res.render('blank');
+  });
+
+  app.get('/email', (req, res) => {
+    res.render('email');
+  });
+
+  app.get('/recovery', (req, res) => {
+    res.render('recovery');
+  });
+
+  app.get('/usernames', (req, res) => {
+    res.render('usernames');
+  });
+
+  app.get('/reset', (req, res) => {
+    if (req.query.TEGid != '' && req.query.token != '') {
+      getRequest
+        .handleReset(req.query.TEGid, req.query.token, playerCollection)
+        .then((u) => {
+          res.render('reset', {
+            TEGid: u.user.TEGid,
+            token: u.reset.token,
+          });
+        })
+        .catch((e) => {
+          console.log(e);
+          res.redirect('/blank?expired=true');
+        });
+    } else res.redirect('/blank?expired=true');
+  });
+
+  app.get('/confirm', (req, res) => {
+    if (req.query.TEGid != '' && req.query.token != '') {
+      getRequest
+        .handleConfirmEmail(req.query.TEGid, req.query.token, playerCollection)
+        .then((data) => {
+          res.redirect('/blank?added=true');
+        })
+        .catch((e) => {
+          console.log(e);
+          res.redirect('/blank?expired=true');
+        });
+    } else res.redirect('/blank?expired=true');
+  });
+
   app.post('/auth/register', (req, res) => {
     var nameCount = 0;
     if (
@@ -157,14 +207,14 @@ mongoClient.connect((err) => {
           } else {
             res.cookie('TEGid', u.user.TEGid);
             res.cookie('authid', u.user.authid);
-            res.cookie('dname', u.user.dname);
+            res.clearCookie('dname');
             res.cookie('authpass', u.user.authpass);
             var date = Date.parse(u.session.expires_at);
             res.cookie('session_token', u.session.token, {
               maxAge: date.valueOf() - Date.now(),
             });
-            res.cookie('logged', true);
-            res.redirect('/');
+            res.cookie('logged', false);
+            res.redirect('/email');
           }
         })
         .catch((e) => {
@@ -193,6 +243,82 @@ mongoClient.connect((err) => {
           res.redirect('/forgot?failed=true');
         });
     } else res.redirect('/forgot?failed=true');
+  });
+
+  app.post('/auth/email', (req, res) => {
+    postRequest
+      .handleEmail(
+        req.body.TEGid,
+        req.body.email,
+        req.body.token,
+        playerCollection,
+        config.email,
+        config.httpserver.url,
+        transport
+      )
+      .then((data) => {
+        res.redirect('/email?sent=true');
+      })
+      .catch((e) => {
+        console.log(e);
+        res.redirect('/email?failed=true');
+      });
+  });
+
+  app.post('/auth/usernames', (req, res) => {
+    postRequest
+      .handleUsernames(
+        req.body.email,
+        playerCollection,
+        config.email,
+        transport
+      )
+      .then((data) => {
+        res.redirect('/usernames?sent=true');
+      })
+      .catch((e) => {
+        console.log(e);
+        res.redirect('/usernames?failed=true');
+      });
+  });
+
+  app.post('/auth/recovery', (req, res) => {
+    postRequest
+      .handleRecovery(
+        req.body.username,
+        req.body.email,
+        playerCollection,
+        config.email,
+        config.httpserver.url,
+        transport
+      )
+      .then((data) => {
+        res.redirect('/recovery?sent=true');
+      })
+      .catch((e) => {
+        console.log(e);
+        res.redirect('/recovery?failed=true');
+      });
+  });
+
+  app.post('/auth/reset', (req, res) => {
+    if (req.body.password != '' && req.body.password == req.body.confirm) {
+      postRequest
+        .handleReset(
+          req.body.TEGid,
+          req.body.token,
+          req.body.forgot,
+          req.body.password,
+          playerCollection
+        )
+        .then((data) => {
+          res.redirect('/blank?reset=true');
+        })
+        .catch((e) => {
+          console.log(e);
+          res.redirect('/reset?failed=true');
+        });
+    } else res.redirect('/reset?failed=true');
   });
 
   app.get('/auth/login', (req, res) => {
@@ -226,19 +352,27 @@ mongoClient.connect((err) => {
           res.cookie('authid', u.user.authid, {
             maxAge: date.valueOf() - Date.now(),
           });
-          res.cookie('dname', u.user.dname, {
-            maxAge: date.valueOf() - Date.now(),
-          });
           res.cookie('authpass', u.user.authpass, {
             maxAge: date.valueOf() - Date.now(),
           });
           res.cookie('session_token', u.session.token, {
             maxAge: date.valueOf() - Date.now(),
           });
-          res.cookie('logged', true, {
-            maxAge: date.valueOf() - Date.now(),
-          });
-          res.redirect('/');
+          if (u.email.confirmed) {
+            res.cookie('dname', u.user.dname, {
+              maxAge: date.valueOf() - Date.now(),
+            });
+            res.cookie('logged', true, {
+              maxAge: date.valueOf() - Date.now(),
+            });
+            res.redirect('/');
+          } else {
+            res.clearCookie('dname');
+            res.cookie('logged', false, {
+              maxAge: date.valueOf() - Date.now(),
+            });
+            res.redirect('/email');
+          }
         })
         .catch((e) => {
           console.log(e);

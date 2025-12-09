@@ -93,6 +93,218 @@ module.exports = {
         });
     });
   },
+  handleEmail: function (
+    TEGid,
+    emailAddress,
+    token,
+    collection,
+    mailObject,
+    baseURL,
+    transport
+  ) {
+    return new Promise(function (resolve, reject) {
+      collection
+        .findOne({
+          'user.TEGid': TEGid,
+          'session.token': token,
+        })
+        .then((u) => {
+          if (u != null) {
+            if (Date.now() < Date.parse(u.session.expires_at)) {
+              var today = new Date();
+              today.setDate(today.getDate() + 1);
+              u.reset.token = `${crypto.randomBytes(48).toString('base64url')}`;
+              collection
+                .updateOne(
+                  {
+                    'user.TEGid': u.user.TEGid,
+                  },
+                  {
+                    $set: {
+                      email: {
+                        address: emailAddress,
+                        confirmed: false,
+                      },
+                      reset: {
+                        token: u.reset.token,
+                        expires_at: today,
+                        renewable: false,
+                      },
+                    },
+                  }
+                )
+                .then((d) => {
+                  const link = `${baseURL}/confirm?TEGid=${u.user.TEGid}&token=${u.reset.token}`;
+                  transport
+                    .sendMail({
+                      from: {
+                        name: mailObject.name,
+                        address: mailObject.address,
+                      },
+                      to: emailAddress,
+                      subject: mailObject.confirm.subject(u.user.TEGid),
+                      text: mailObject.confirm.text(u.user.TEGid, link),
+                      html: mailObject.confirm.html(u.user.TEGid, link),
+                    })
+                    .then((info) => {
+                      resolve(u);
+                    })
+                    .catch((err) => {
+                      reject(err);
+                    });
+                })
+                .catch((err) => {
+                  reject(err);
+                });
+            } else reject('Session for email confirmation expired.');
+          } else reject('User for email confirmation not found.');
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  },
+  handleUsernames: function (email, collection, mailObject, transport) {
+    return new Promise(function (resolve, reject) {
+      collection
+        .find({
+          'email.address': { $regex: new RegExp(`^${email}$`, 'i') },
+        })
+        .toArray()
+        .then((userArray) => {
+          if (userArray.length != 0) {
+            const usernames = userArray.map((u) => {
+              return u.user.TEGid;
+            });
+            transport
+              .sendMail({
+                from: {
+                  name: mailObject.name,
+                  address: mailObject.address,
+                },
+                to: email,
+                subject: mailObject.usernames.subject(),
+                text: mailObject.usernames.text(usernames),
+                html: mailObject.usernames.html(usernames),
+              })
+              .then((info) => {
+                resolve(info);
+              })
+              .catch((err) => {
+                reject(err);
+              });
+          } else resolve(userArray);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  },
+  handleRecovery: function (
+    username,
+    email,
+    collection,
+    mailObject,
+    baseURL,
+    transport
+  ) {
+    return new Promise(function (resolve, reject) {
+      collection
+        .findOne({
+          'user.TEGid': { $regex: new RegExp(`^${username}$`, 'i') },
+          'email.address': { $regex: new RegExp(`^${email}$`, 'i') },
+        })
+        .then((u) => {
+          if (u != null) {
+            var today = new Date();
+            today.setDate(today.getDate() + 1);
+            u.reset.token = `${crypto.randomBytes(48).toString('base64url')}`;
+            collection
+              .updateOne(
+                {
+                  'user.TEGid': u.user.TEGid,
+                },
+                {
+                  $set: {
+                    reset: {
+                      token: u.reset.token,
+                      expires_at: today,
+                      renewable: false,
+                    },
+                  },
+                }
+              )
+              .then((d) => {
+                const link = `${baseURL}/reset?TEGid=${u.user.TEGid}&token=${u.reset.token}`;
+                transport
+                  .sendMail({
+                    from: {
+                      name: mailObject.name,
+                      address: mailObject.address,
+                    },
+                    to: u.email.address,
+                    subject: mailObject.recovery.subject(u.user.TEGid),
+                    text: mailObject.recovery.text(u.user.TEGid, link),
+                    html: mailObject.recovery.html(u.user.TEGid, link),
+                  })
+                  .then((info) => {
+                    resolve(u);
+                  })
+                  .catch((err) => {
+                    reject(err);
+                  });
+              })
+              .catch((e) => {
+                reject(e);
+              });
+          } else resolve(u);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  },
+  handleReset: function (TEGid, token, forgot, password, collection) {
+    return new Promise(function (resolve, reject) {
+      collection
+        .findOne({
+          'user.TEGid': TEGid,
+          'reset.token': token,
+        })
+        .then((u) => {
+          if (u != null) {
+            if (Date.now() < Date.parse(u.reset.expires_at)) {
+              bcrypt.hash(password, 10, (err, passwordHash) => {
+                bcrypt.hash(forgot, 10, (er, forgotHash) => {
+                  collection
+                    .updateOne(
+                      {
+                        'user.TEGid': u.user.TEGid,
+                      },
+                      {
+                        $set: {
+                          'reset.expires_at': new Date(),
+                          forgot: forgotHash,
+                          'user.authpass': passwordHash,
+                        },
+                      }
+                    )
+                    .then((d) => {
+                      resolve(u);
+                    })
+                    .catch((e) => {
+                      reject(e);
+                    });
+                });
+              });
+            } else reject('Session for account reset expired.');
+          } else reject('User for reset not found.');
+        })
+        .catch((e) => {
+          reject(e);
+        });
+    });
+  },
 
   handleLogin: function (TEGid, authid, collection) {
     // /exonaut/ExonautPlayerAuthenticate PROVIDES TEGid, authid RETURNS a lot
