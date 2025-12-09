@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>OpenExonaut - Forgotten Password</title>
+    <title>OpenExonaut - Reset Password</title>
 
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <link rel="stylesheet" href="css/bootstrap.min.css">
@@ -54,21 +54,25 @@
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script defer type="text/javascript" src="js/bootstrap.bundle.min.js"></script>
 
-    <div class="container" style="width: 24rem;">
-    <div class="card text-center">
-    <form class="form-login" id="form" action="/auth/forgot" method="post">
-    <img class="mb-4" src="favicon.ico" alt="" width="128" height="128">
-    <h1 class="h3 mb-3 font-weight-normal">Forgot Password</h1>
+    <script>
+      const failed = window.location.search.includes('failed');
+      if (failed) window.alert('Password reset failed!');
+    </script>
 
-    <input type="text" id="username" class="form-control" placeholder="Username" name="username" required>
-    <input type="text" id="forgot" class="form-control mt-3" name="forgot" placeholder="Secret Phrase">
-    <input class="form-control mt-3 mb-0" type="password" id="password" name="password" placeholder="New password">
-    <input class="form-control mt-0 mb-3" type="password" id="confirm" name="confirm" placeholder="Confirm password">
-    <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
-    <p class="mt-3 text-muted">Remembered your password? <a href="/login">Login</a></p>
-    <p class="mt-3 text-muted">Also forgot your secret phrase? <a href="/recovery">Recover by email</a></p>
-    </form>
-  </div>
-</div>
+    <div class="container" style="width: 24rem;">
+      <div class="card text-center">
+        <form class="form-login" id="form" action="/auth/reset" method="post">
+          <img class="mb-4" src="favicon.ico" alt="" width="128" height="128">
+          <h1 class="h3 mb-3 font-weight-normal">Reset Password</h1>
+
+          <input class="form-control mt-3 mb-0" type="password" id="password" name="password" placeholder="New password">
+          <input class="form-control mt-0 mb-3" type="password" id="confirm" name="confirm" placeholder="Confirm password">
+          <input class="form-control mb-3" type="text" id="forgot" name="forgot" placeholder="New Secret Phrase for password reset" required>
+          <input type="hidden" id="TEGid" name="TEGid" value="<%= TEGid %>">
+          <input type="hidden" id="token" name="token" value="<%= token %>">
+          <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+        </form>
+      </div>
+    </div>
   </body>
 </html>

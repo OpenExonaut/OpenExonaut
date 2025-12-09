@@ -16,23 +16,33 @@ module.exports = {
                     resolve(u);
                   } else reject();
                 } else {
-                  var newToken = `${crypto.randomUUID()}`;
                   var today = new Date();
                   today.setDate(today.getDate() + 1);
-                  var newSession = {
-                    token: newToken,
+                  u.session = {
+                    token: `${crypto.randomUUID()}`,
                     expires_at: today,
                     renewable: false,
                   };
-                  var newAuthID = `${crypto.randomBytes(48).toString('base64url')}`;
+                  u.user.authid = `${crypto.randomBytes(48).toString('base64url')}`;
                   const update = {
                     $set: {
-                      session: newSession,
-                      'user.authid': newAuthID,
+                      session: u.session,
+                      'user.authid': u.user.authid,
                     },
                   };
-                  u.session = newSession;
-                  u.user.authid = newAuthID;
+                  if (!u.email) {
+                    u.email = update.$set.email = {
+                      address: '',
+                      confirmed: false,
+                    };
+                  }
+                  if (!u.reset) {
+                    u.reset = update.$set.reset = {
+                      token: `${crypto.randomBytes(48).toString('base64url')}`,
+                      expires_at: new Date(),
+                      renewable: false,
+                    };
+                  }
                   collection
                     .updateOne(
                       {
@@ -52,6 +62,52 @@ module.exports = {
               }
             });
           } else reject('Null user');
+        })
+        .catch(console.error);
+    });
+  },
+  handleReset: function (TEGid, token, collection) {
+    return new Promise(function (resolve, reject) {
+      collection
+        .findOne({ 'user.TEGid': TEGid, 'reset.token': token })
+        .then((u) => {
+          if (u != null) {
+            if (Date.now() < Date.parse(u.reset.expires_at)) {
+              resolve(u);
+            } else reject('Expired reset request');
+          } else reject('Reset not matching');
+        })
+        .catch(console.error);
+    });
+  },
+  handleConfirmEmail: function (TEGid, token, collection) {
+    return new Promise(function (resolve, reject) {
+      collection
+        .findOne({ 'user.TEGid': TEGid, 'reset.token': token })
+        .then((u) => {
+          if (u != null) {
+            if (Date.now() < Date.parse(u.reset.expires_at)) {
+              if (u.email && u.email.address != '' && !u.email.confirmed) {
+                u.reset.expires_at = new Date();
+                collection
+                  .updateOne(
+                    {
+                      'user.TEGid': u.user.TEGid,
+                    },
+                    {
+                      $set: {
+                        'reset.expires_at': u.reset.expires_at,
+                        'email.confirmed': true,
+                      },
+                    }
+                  )
+                  .then((d) => {
+                    resolve(u);
+                  })
+                  .catch(console.error);
+              } else reject('Invalid state for email confirmation');
+            } else reject('Expired confirm request');
+          } else reject('Confirm not matching');
         })
         .catch(console.error);
     });

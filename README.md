@@ -1,8 +1,6 @@
 # OpenExonaut
 
-[//]: # (OpenATBP releases badge was here)
-[//]: # (OpenATBP Trello badge was here)
-[//]: # (OpenATBP Discord badge was here)
+[![Discord Badge](https://img.shields.io/discord/1340720913863413810?color=687DC5&logo=discord)](https://discord.com/invite/ze3VczKHfZ)
 [![License Badge](https://img.shields.io/github/license/OpenExonaut/OpenExonaut)](https://github.com/OpenExonaut/OpenExonaut/blob/main/LICENSE.md)
 
 An open-source lobby, service, and game server for Project Exonaut, built upon the foundation of [OpenATBP](https://github.com/OpenATBP/OpenATBP).
