@@ -68,8 +68,11 @@ public final class ExoDB {
                 userCollection.findOneAndUpdate(
                         Filters.eq("user.TEGid", tegid),
                         Updates.combine(
-                                Updates.inc("player.XP", input.award),
-                                Updates.inc("player.Credits", input.award),
+                                Updates.inc(
+                                        "player.XP", input.award * ExoProps.getTotalXPMultiplier()),
+                                Updates.inc(
+                                        "player.Credits",
+                                        input.award * ExoProps.getTotalCreditsMultiplier()),
                                 Updates.set("player.LastSuit", input.suit)),
                         new FindOneAndUpdateOptions()
                                 .projection(

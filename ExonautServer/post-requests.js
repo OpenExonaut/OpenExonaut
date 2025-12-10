@@ -276,6 +276,7 @@ module.exports = {
             if (Date.now() < Date.parse(u.reset.expires_at)) {
               bcrypt.hash(password, 10, (err, passwordHash) => {
                 bcrypt.hash(forgot, 10, (er, forgotHash) => {
+                  const expireNow = new Date();
                   collection
                     .updateOne(
                       {
@@ -283,7 +284,8 @@ module.exports = {
                       },
                       {
                         $set: {
-                          'reset.expires_at': new Date(),
+                          'reset.expires_at': expireNow,
+                          'session.expires_at': expireNow,
                           forgot: forgotHash,
                           'user.authpass': passwordHash,
                         },

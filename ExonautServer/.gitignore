@@ -1,6 +1,8 @@
 # Node Modules
 node_modules
 
+gamedata.json
+
 # Exclude game assets in static, while including files needed to render webpage
 static/*
 !static/css/

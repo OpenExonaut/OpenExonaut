@@ -88,7 +88,7 @@ module.exports = {
           if (u != null) {
             if (Date.now() < Date.parse(u.reset.expires_at)) {
               if (u.email && u.email.address != '' && !u.email.confirmed) {
-                u.reset.expires_at = new Date();
+                u.session.expires_at = u.reset.expires_at = new Date();
                 collection
                   .updateOne(
                     {
@@ -97,6 +97,7 @@ module.exports = {
                     {
                       $set: {
                         'reset.expires_at': u.reset.expires_at,
+                        'session.expires_at': u.session.expires_at,
                         'email.confirmed': true,
                       },
                     }
