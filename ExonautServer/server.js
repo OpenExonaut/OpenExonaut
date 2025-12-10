@@ -12,6 +12,8 @@ const SocketPolicyServer = require('./socket-policy.js');
 
 const displayNames = require('./data/names.json');
 
+const patch = require('./patch.js');
+
 function getLowerCaseName(name) {
   var firstLetter = name.charAt(name).toUpperCase();
   var fullString = firstLetter;
@@ -48,7 +50,7 @@ const transport = nodemailer.createTransport(config.email.transport);
 
 let gameData;
 try {
-  gameData = require('./static/exonaut/gamedata.json');
+  gameData = require('./gamedata.json');
 } catch (err) {
   if (err instanceof Error && err.code === 'MODULE_NOT_FOUND') {
     console.error(
@@ -57,6 +59,8 @@ try {
   } else throw err;
   process.exit(1);
 }
+
+patch.patchGameData(gameData);
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const mongoClient = new MongoClient(config.httpserver.mongouri, {
@@ -99,6 +103,10 @@ mongoClient.connect((err) => {
   app.use(cors());
   app.use(express.json());
   app.use(express.text());
+
+  app.get('/exonaut/gamedata.json', (req, res) => {
+    res.json(gameData);
+  });
 
   app.get('/', (req, res) => {
     res.render('index');

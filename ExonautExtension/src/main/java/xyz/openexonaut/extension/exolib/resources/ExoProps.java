@@ -24,6 +24,8 @@ public final class ExoProps {
     private static int creditsParticipation = 5;
     private static int creditsPerHack = 5;
     private static int creditsWin = 10;
+    private static int totalCreditsMultiplier = 1;
+    private static int totalXPMultiplier = 1;
 
     private ExoProps() {}
 
@@ -44,6 +46,8 @@ public final class ExoProps {
         creditsParticipation = Integer.parseInt(props.getProperty("creditsParticipation"));
         creditsPerHack = Integer.parseInt(props.getProperty("creditsPerHack"));
         creditsWin = Integer.parseInt(props.getProperty("creditsWin"));
+        totalCreditsMultiplier = Integer.parseInt(props.getProperty("totalCreditsMultiplier"));
+        totalXPMultiplier = Integer.parseInt(props.getProperty("totalXPMultiplier"));
 
         String[] queueWaitStrings = props.getProperty("queueWait").split(literalSemicolon);
         boolean gotQueueWaitLeastPlayers = false;
@@ -115,5 +119,13 @@ public final class ExoProps {
 
     public static int getCreditsWin() {
         return creditsWin;
+    }
+
+    public static int getTotalCreditsMultiplier() {
+        return totalCreditsMultiplier;
+    }
+
+    public static int getTotalXPMultiplier() {
+        return totalXPMultiplier;
     }
 }

@@ -15,6 +15,8 @@ dl.on('end', () => {
     }).then(() => {
       console.log('Extraction completed.');
       fs.rmSync('./static/openexonaut-20250131-assets.zip');
+      fs.renameSync('./static/exonaut/gamedata.json', './gamedata.json');
+      fs.rmdirSync('./static/exonaut');
       console.log('Cleaned up.');
     });
   } catch (err) {
