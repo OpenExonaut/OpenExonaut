@@ -21,6 +21,12 @@ function getLowerCaseName(name) {
   return fullString;
 }
 
+const lowerCaseNames = {
+  list1: displayNames.list1.map(getLowerCaseName),
+  list2: displayNames.list2.map(getLowerCaseName),
+  list3: displayNames.list3.map(getLowerCaseName),
+};
+
 function ensureConfFile(file, directory) {
   if (!fs.existsSync(directory + '/' + file)) {
     console.info('Copying default ' + file);
@@ -177,19 +183,19 @@ mongoClient.connect((err) => {
     var nameCount = 0;
     if (
       req.body.name1 != '' &&
-      displayNames.list1.includes(getLowerCaseName(req.body.name1))
+      lowerCaseNames.list1.includes(getLowerCaseName(req.body.name1))
     )
       nameCount++;
     else if (req.body.name1 != '') nameCount = -100;
     if (
       req.body.name2 != '' &&
-      displayNames.list2.includes(getLowerCaseName(req.body.name2))
+      lowerCaseNames.list2.includes(getLowerCaseName(req.body.name2))
     )
       nameCount++;
     else if (req.body.name2 != '') nameCount = -100;
     if (
       req.body.name3 != '' &&
-      displayNames.list3.includes(getLowerCaseName(req.body.name3))
+      lowerCaseNames.list3.includes(getLowerCaseName(req.body.name3))
     )
       nameCount++;
     else if (req.body.name3 != '') nameCount = -100;
