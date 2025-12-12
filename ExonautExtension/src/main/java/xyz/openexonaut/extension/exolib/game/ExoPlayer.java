@@ -304,7 +304,7 @@ public class ExoPlayer extends ExoTickable {
             crashes++;
             sender.addHack(damageModifierAttackOnly, room);
             health = suit.Health;
-            crashTimer = 8f;
+            crashTimer = 5f;
 
             setVariables(
                     List.of(
