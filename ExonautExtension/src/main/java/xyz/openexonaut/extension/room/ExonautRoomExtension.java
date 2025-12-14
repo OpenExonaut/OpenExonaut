@@ -16,13 +16,7 @@ public class ExonautRoomExtension extends SFSExtension {
 
     @Override
     public void init() {
-        try {
-            game = new ExoGame(getParentRoom());
-        } catch (ExoRuntimeException e) {
-            getLogger().warn("room init sanitization exception", e);
-        } catch (Exception e) {
-            getLogger().error("room init error", e);
-        }
+        game = new ExoGame(getParentRoom());
 
         addEventHandler(SFSEventType.USER_JOIN_ROOM, UserJoinRoomHandler.class);
         addEventHandler(SFSEventType.USER_LEAVE_ROOM, UserLeaveRoomHandler.class);

@@ -36,6 +36,8 @@ public class ExoGame extends ExoTickable implements Runnable {
     private ExoPeek peek = null;
     private ExoWorld world = null;
 
+    private Map<String, ExoPlayer> tegIDToPlayer = new HashMap<>(8);
+
     private ScheduledFuture<?> gameHandle = null;
     private ScheduledFuture<?> peekHandle = null;
 
@@ -58,6 +60,8 @@ public class ExoGame extends ExoTickable implements Runnable {
 
         if (reinit) {
             destroy();
+
+            tegIDToPlayer.clear();
 
             List<RoomVariable> roomVars = new ArrayList<>(ExoEntryUtils.initialRoomVars);
             roomVars.add(new SFSRoomVariable("stop", null)); // delete variable
@@ -101,6 +105,25 @@ public class ExoGame extends ExoTickable implements Runnable {
     public void spawnPlayer(User user) {
         world.spawnPlayer(user);
 
+        String tegID = (String) user.getProperty("tegid");
+        ExoPlayer player = (ExoPlayer) user.getProperty("ExoPlayer");
+        if (!tegID.equals("")) {
+            ExoPlayer oldPlayer = tegIDToPlayer.get(tegID);
+            if (oldPlayer != null) {
+                player.rejoin(oldPlayer);
+            } else {
+                String joinedTegIDs =
+                        String.format(
+                                "%s%s_", room.getVariable("joinedTegIDs").getStringValue(), tegID);
+
+                SFSRoomVariable joinedTegIDsVariable =
+                        new SFSRoomVariable("joinedTegIDs", joinedTegIDs);
+                joinedTegIDsVariable.setHidden(true);
+                setVariables(List.of(joinedTegIDsVariable));
+            }
+            tegIDToPlayer.put(tegID, player);
+        }
+
         int imbalance =
                 room.getVariable("imbalance").getIntValue()
                         + (user.getVariable("faction").getStringValue().equals("banzai") ? 1 : -1);
@@ -115,9 +138,7 @@ public class ExoGame extends ExoTickable implements Runnable {
             if (room.getVariable("state").getStringValue().equals("wait_for_min_players")) {
                 setVariables(List.of(new SFSRoomVariable("state", "countdown")));
                 prime();
-                // client state update targets 8 Hz. i think that's too infrequent, so let's
-                // start at 20 Hz and go from there
-                gameHandle = scheduler.scheduleAtFixedRate(this, 0, 50, TimeUnit.MILLISECONDS);
+                gameHandle = scheduler.scheduleAtFixedRate(this, 0, 125, TimeUnit.MILLISECONDS);
             }
         }
     }
@@ -139,7 +160,8 @@ public class ExoGame extends ExoTickable implements Runnable {
                 gameHandle.cancel(false);
                 if (queueTime == 0f) {
                     // whoops, too late, carry on
-                    gameHandle = scheduler.scheduleAtFixedRate(this, 50, 50, TimeUnit.MILLISECONDS);
+                    gameHandle =
+                            scheduler.scheduleAtFixedRate(this, 125, 125, TimeUnit.MILLISECONDS);
                 } else {
                     setVariables(List.of(new SFSRoomVariable("state", "wait_for_min_players")));
                     queueTime = ExoProps.getQueueWaitLeastPlayers();
@@ -255,7 +277,9 @@ public class ExoGame extends ExoTickable implements Runnable {
 
                 if (world.map.scale != 0f) {
                     peek = new ExoPeek();
-                    peekHandle = scheduler.scheduleAtFixedRate(peek, 25, 50, TimeUnit.MILLISECONDS);
+                    peekHandle =
+                            scheduler.scheduleAtFixedRate(
+                                    peek, 62500, 125000, TimeUnit.NANOSECONDS);
                 }
 
                 ISFSObject timerUpdate = new SFSObject();

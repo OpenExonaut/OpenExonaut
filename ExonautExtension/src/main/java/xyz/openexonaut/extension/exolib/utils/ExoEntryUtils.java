@@ -17,15 +17,18 @@ import xyz.openexonaut.extension.exolib.resources.*;
 
 public final class ExoEntryUtils {
     private static final RoomVariable initialImbalance = new SFSRoomVariable("imbalance", (int) 0);
+    private static final RoomVariable initialJoinedTegIDs = new SFSRoomVariable("joinedTegIDs", "");
 
     static {
         initialImbalance.setHidden(true);
+        initialJoinedTegIDs.setHidden(true);
     }
 
     public static final List<RoomVariable> initialRoomVars =
             List.of(
                     new SFSRoomVariable("state", "wait_for_min_players"),
                     initialImbalance,
+                    initialJoinedTegIDs,
                     new SFSRoomVariable("time", (int) 0));
     public static final List<UserVariable> initialUserVars =
             List.of(
@@ -93,15 +96,13 @@ public final class ExoEntryUtils {
 
     public static void findRoom(User sender, String modeParam, Zone zone) {
         ISFSApi sfsApi = SmartFoxServer.getInstance().getAPIManager().getSFSApi();
-        CreateRoomSettings roomSettings = new CreateRoomSettings();
-        List<RoomVariable> roomVars = new ArrayList<>();
         List<UserVariable> userVars = new ArrayList<>();
-        int mapId = (int) (Math.random() * ExoMapManager.getMapCount()) + 1;
         ExoPlayer player = (ExoPlayer) sender.getProperty("ExoPlayer");
+        boolean team = modeParam.equals("team");
         boolean banzai = sender.getVariable("faction").getStringValue().equals("banzai");
-        String mode;
-
+        String mode = team ? "team" : "freeforall";
         ExoSuit suit = ExoGameData.getSuit(sender.getVariable("suitId").getIntValue());
+        MatchExpression roomMatch = new MatchExpression("mode", StringMatch.EQUALS, mode);
 
         // nickName is prior set
         // level is prior set
@@ -119,42 +120,7 @@ public final class ExoEntryUtils {
 
         player.setSuit(suit);
 
-        roomSettings.setMaxUsers(8);
-        roomSettings.setMaxVariablesAllowed(10);
-        roomSettings.setDynamic(true);
-        roomSettings.setAutoRemoveMode(SFSRoomRemoveMode.WHEN_EMPTY);
-        roomSettings.setExtension(
-                new CreateRoomSettings.RoomExtensionSettings(
-                        "Exonaut", "xyz.openexonaut.extension.room.ExonautRoomExtension"));
-        roomSettings.setGame(true);
-
-        // "stop" is used existentially
-        roomVars.addAll(initialRoomVars);
-        roomVars.add(
-                new SFSRoomVariable(
-                        "hackLimit",
-                        modeParam.equals("team")
-                                ? ExoProps.getMaxHacksTeam()
-                                : ExoProps.getMaxHacksSolo()));
-        roomVars.add(new SFSRoomVariable("mapId", mapId));
-        roomVars.add(new SFSRoomVariable("lastMapLoadedId", mapId));
-
-        if (modeParam.equals("team")) {
-            roomSettings.setName(String.format("team_%d", System.currentTimeMillis()));
-            roomVars.add(new SFSRoomVariable("mode", "team"));
-            mode = "team";
-        } else {
-            roomSettings.setName(String.format("ffa_%d", System.currentTimeMillis()));
-            roomVars.add(new SFSRoomVariable("mode", "freeforall"));
-            mode = "freeforall";
-        }
-
-        roomSettings.setRoomVariables(roomVars);
-
-        MatchExpression roomMatch =
-                new MatchExpression("mode", StringMatch.EQUALS, mode)
-                        .and("state", StringMatch.NOT_EQUALS, "play");
-        if (mode.equals("team")) {
+        if (team) {
             roomMatch =
                     roomMatch.and(
                             "imbalance",
@@ -162,10 +128,61 @@ public final class ExoEntryUtils {
                             banzai ? 1 : -1);
         }
 
-        try {
-            sfsApi.quickJoinOrCreateRoom(sender, roomMatch, Arrays.asList("default"), roomSettings);
-        } catch (SFSCreateRoomException | SFSJoinRoomException e) {
-            throw new RuntimeException(e);
+        List<Room> allRooms = sfsApi.findRooms(zone.getRoomList(), roomMatch, 0);
+        if (allRooms.size() > 0) {
+            List<Room> previousRooms =
+                    sfsApi.findRooms(
+                            allRooms,
+                            new MatchExpression(
+                                            RoomProperties.HAS_FREE_PLAYER_SLOTS,
+                                            BoolMatch.EQUALS,
+                                            true)
+                                    .and(
+                                            "joinedTegIDs",
+                                            StringMatch.CONTAINS,
+                                            String.format(
+                                                    "%s_", (String) sender.getProperty("tegid"))),
+                            0);
+
+            List<Room> roomList = previousRooms.size() > 0 ? previousRooms : allRooms;
+            try {
+                sfsApi.joinRoom(sender, roomList.get((int) (Math.random() * roomList.size())));
+            } catch (SFSJoinRoomException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            CreateRoomSettings roomSettings = new CreateRoomSettings();
+            List<RoomVariable> roomVars = new ArrayList<>();
+            int mapId = (int) (Math.random() * ExoMapManager.getMapCount()) + 1;
+
+            roomSettings.setMaxUsers(8);
+            roomSettings.setMaxVariablesAllowed(10);
+            roomSettings.setDynamic(true);
+            roomSettings.setAutoRemoveMode(SFSRoomRemoveMode.WHEN_EMPTY);
+            roomSettings.setExtension(
+                    new CreateRoomSettings.RoomExtensionSettings(
+                            "Exonaut", "xyz.openexonaut.extension.room.ExonautRoomExtension"));
+            roomSettings.setGame(true);
+
+            // "stop" is used existentially
+            roomVars.addAll(initialRoomVars);
+            roomVars.add(
+                    new SFSRoomVariable(
+                            "hackLimit",
+                            team ? ExoProps.getMaxHacksTeam() : ExoProps.getMaxHacksSolo()));
+            roomVars.add(new SFSRoomVariable("mapId", mapId));
+            roomVars.add(new SFSRoomVariable("lastMapLoadedId", mapId));
+            roomVars.add(new SFSRoomVariable("mode", mode));
+
+            roomSettings.setName(
+                    String.format("%s_%d", team ? "team" : "ffa", System.currentTimeMillis()));
+            roomSettings.setRoomVariables(roomVars);
+
+            try {
+                sfsApi.createRoom(zone, roomSettings, sender, true, null);
+            } catch (SFSCreateRoomException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         ISFSObject responseParams = new SFSObject();
