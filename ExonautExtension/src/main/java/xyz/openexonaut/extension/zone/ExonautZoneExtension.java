@@ -70,7 +70,7 @@ public class ExonautZoneExtension extends SFSExtension implements Runnable {
         Properties newProps = new Properties();
         try {
             newProps.load(new FileInputStream(propertiesPath));
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error("props reload error", e);
             return;
         }

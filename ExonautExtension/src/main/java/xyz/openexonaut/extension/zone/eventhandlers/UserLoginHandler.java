@@ -5,38 +5,24 @@ import com.smartfoxserver.v2.core.*;
 import com.smartfoxserver.v2.exceptions.*;
 import com.smartfoxserver.v2.extensions.*;
 
-import xyz.openexonaut.extension.exolib.game.*;
 import xyz.openexonaut.extension.exolib.utils.*;
 
 public class UserLoginHandler extends BaseServerEventHandler {
     @Override
     public void handleServerEvent(ISFSEvent event) throws SFSException {
-        try {
-            Session session = (Session) event.getParameter(SFSEventParam.SESSION);
-            String username = (String) event.getParameter(SFSEventParam.LOGIN_NAME);
-            String password = (String) event.getParameter(SFSEventParam.LOGIN_PASSWORD);
+        Session session = (Session) event.getParameter(SFSEventParam.SESSION);
+        String username = (String) event.getParameter(SFSEventParam.LOGIN_NAME);
+        String password = (String) event.getParameter(SFSEventParam.LOGIN_PASSWORD);
 
-            trace(
-                    ExtensionLogLevel.DEBUG,
-                    String.format(
-                            "zone login with username %s (session id %d)",
-                            username, session.getId()));
+        trace(
+                ExtensionLogLevel.DEBUG,
+                String.format(
+                        "zone login with username %s (session id %d)", username, session.getId()));
 
-            if (!ExoEntryUtils.login(
-                    session, username, password, getParentExtension().getParentZone())) {
-                throw new SFSLoginException("User matching provided credentials not found.");
-            }
-        } catch (SFSLoginException e) {
-            // return without exception marks successful pass of authentication stage of login
-            throw e;
-        } catch (ExoRuntimeException e) {
-            getLogger().warn("zone user login sanitization exception", e);
-            // return without exception marks successful pass of authentication stage of login
-            throw e;
-        } catch (Exception e) {
-            getLogger().error("zone user login error", e);
-            // return without exception marks successful pass of authentication stage of login
-            throw e;
+        if (!ExoEntryUtils.login(
+                session, username, password, getParentExtension().getParentZone())) {
+            throw new SFSLoginException("User matching provided credentials not found.");
         }
+        // return without exception marks successful pass of authentication stage of login
     }
 }

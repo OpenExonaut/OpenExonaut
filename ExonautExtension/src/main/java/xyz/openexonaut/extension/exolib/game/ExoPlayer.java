@@ -29,10 +29,14 @@ public class ExoPlayer extends ExoTickable {
     private float boostTimer;
     private float teamBoostTimer;
 
+    private int hacks;
     private int crashes;
     // TODO: achievement/performance metrics
-    @SuppressWarnings("unused")
-    private int fuelConsumed, hacksInvisible, hacksSpeed, hacksDamageBoost, hacksArmorBoost;
+    private int fuelConsumed;
+    private int hacksInvisible;
+    private int hacksSpeed;
+    private int hacksDamageBoost;
+    private int hacksArmorBoost;
 
     private ExoBody activeBody = null;
     private ExoBody standingBody = null;
@@ -50,12 +54,26 @@ public class ExoPlayer extends ExoTickable {
         boostTimer = 0f;
         teamBoostTimer = 0f;
 
+        hacks = 0;
         crashes = 0;
         fuelConsumed = 0;
         hacksInvisible = 0;
         hacksSpeed = 0;
         hacksDamageBoost = 0;
         hacksArmorBoost = 0;
+    }
+
+    public void rejoin(ExoPlayer oldPlayer) {
+        hacks = oldPlayer.hacks;
+        crashes = oldPlayer.crashes;
+        fuelConsumed = oldPlayer.fuelConsumed;
+        hacksInvisible = oldPlayer.hacksInvisible;
+        hacksSpeed = oldPlayer.hacksSpeed;
+        hacksDamageBoost = oldPlayer.hacksDamageBoost;
+        hacksArmorBoost = oldPlayer.hacksArmorBoost;
+
+        setVariables(List.of(new SFSUserVariable("hacks", hacks)));
+        prime();
     }
 
     public String getClientState() {
@@ -94,12 +112,12 @@ public class ExoPlayer extends ExoTickable {
         return user.getVariable("teamBoost").getIntValue();
     }
 
-    public int getHacks() {
-        return user.getVariable("hacks").getIntValue();
-    }
-
     public int getWeaponId() {
         return user.getVariable("weaponId").getIntValue();
+    }
+
+    public int getHacks() {
+        return hacks;
     }
 
     public ExoSuit getSuit() {
@@ -346,7 +364,8 @@ public class ExoPlayer extends ExoTickable {
     }
 
     public void addHack(float damageModifier, Room room) {
-        setVariables(List.of(new SFSUserVariable("hacks", (Integer) (getHacks() + 1))));
+        hacks++;
+        setVariables(List.of(new SFSUserVariable("hacks", hacks)));
         room.getExtension()
                 .handleInternalMessage(
                         "addTeamHack",
