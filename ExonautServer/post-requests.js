@@ -442,7 +442,10 @@ module.exports = {
           (suit) => suit.ID === suitToPurchase
         );
         if (foundSuit) {
-          const exIdRegex = new RegExp(`^${Number(exId).toString(16)}`, 'i');
+          const exIdRegex = new RegExp(
+            `^${Number(exId).toString(16).padStart(7, '0')}`,
+            'i'
+          );
           collection
             .updateOne(
               {
