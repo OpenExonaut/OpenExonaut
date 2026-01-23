@@ -1,11 +1,11 @@
 plugins {
-    id "de.undercouch.download" version "5.4.0"
-    id "com.diffplug.spotless" version "6.13.0"
+    id "de.undercouch.download" version "5.6.0"
+    id "com.diffplug.spotless" version "7.2.1" // last to support Java 11
 }
 
 apply plugin: 'java'
-group 'xyz.openexonaut'
-version '0.1.0-SNAPSHOT'
+group = 'xyz.openexonaut'
+version = '0.1.0-SNAPSHOT'
 
 spotless {
     format 'misc', {
@@ -149,8 +149,7 @@ tasks.register('allJars') {
 
 repositories {
     mavenCentral()
-    jcenter()
-    maven { url "https://jitpack.io" }
+    maven { url = "https://jitpack.io" }
 }
 
 dependencies {
@@ -158,10 +157,11 @@ dependencies {
                          'lib/jackson-core-2.8.2.jar', 'lib/jackson-databind-2.8.2.jar',
                          'lib/slf4j-api-1.7.5.jar', 'lib/slf4j-log4j12-1.7.5.jar')
 
-    implementation 'org.mongodb:mongodb-driver-sync:5.2.0'
+    implementation 'org.mongodb:mongodb-driver-sync:5.6.2'
 }
 
 assemble.dependsOn copySFS2XLibs
+compileJava.dependsOn copySFS2XLibs
 
 tasks.jar.configure {
     dependsOn allJars
