@@ -69,405 +69,402 @@ try {
 patch.patchGameData(gameData);
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const mongoClient = new MongoClient(config.httpserver.mongouri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+MongoClient.connect(config.httpserver.mongouri, {
   serverApi: ServerApiVersion.v1,
-});
+})
+  .then((mongoClient) => {
+    const playerCollection = mongoClient.db('openexonaut').collection('users');
 
-mongoClient.connect((err) => {
-  if (err) {
-    console.error('FATAL: MongoDB connect failed: ' + err);
-    process.exit(1);
-  }
+    ensureConfFile('client.props', 'static');
+    ensureConfFile('crossdomain.xml', 'static');
+    ensureConfFile('director.json', 'static'); // this file being pointed to by `client.props` is a minor hack
+    ensureConfFile('News.txt', 'static');
 
-  const playerCollection = mongoClient.db('openexonaut').collection('users');
+    if (!fs.existsSync('static/suits')) {
+      console.warn(
+        'WARN: Asset files missing from static folder - the game will not work properly.'
+      );
+      console.warn(
+        "Please run 'npm run postinstall' to automatically download and extract them."
+      );
+    } else {
+      ensureConfFile('event.txt', 'static/events');
+    }
 
-  ensureConfFile('client.props', 'static');
-  ensureConfFile('crossdomain.xml', 'static');
-  ensureConfFile('director.json', 'static'); // this file being pointed to by `client.props` is a minor hack
-  ensureConfFile('News.txt', 'static');
+    app.set('view engine', 'ejs');
+    app.use(express.static('static'));
+    app.use(bodyParser.urlencoded({ extended: false }));
+    app.use(bodyParser.json());
+    app.use(cors());
+    app.use(express.json());
+    app.use(express.text());
 
-  if (
-    !fs.existsSync('static/exonaut-0.9.3.6119.unity3d') ||
-    !fs.existsSync('static/suits')
-  ) {
-    console.warn(
-      'WARN: Asset files missing from static folder - the game will not work properly.'
-    );
-    console.warn(
-      "Please run 'npm run postinstall' to automatically download and extract them."
-    );
-  } else {
-    ensureConfFile('event.txt', 'static/events');
-  }
-
-  app.set('view engine', 'ejs');
-  app.use(express.static('static'));
-  app.use(bodyParser.urlencoded({ extended: false }));
-  app.use(bodyParser.json());
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.text());
-
-  app.get('/exonaut/gamedata.json', (req, res) => {
-    res.json(gameData);
-  });
-
-  app.get('/', (req, res) => {
-    res.render('index');
-  });
-
-  app.get('/register', (req, res) => {
-    res.render('register', {
-      displayNames: JSON.stringify(displayNames),
+    app.get('/exonaut/gamedata.json', (req, res) => {
+      res.json(gameData);
     });
-  });
 
-  app.get('/forgot', (req, res) => {
-    res.render('forgot');
-  });
+    app.get('/', (req, res) => {
+      res.render('index');
+    });
 
-  app.get('/login', (req, res) => {
-    res.render('login');
-  });
+    app.get('/register', (req, res) => {
+      res.render('register', {
+        displayNames: JSON.stringify(displayNames),
+      });
+    });
 
-  app.get('/blank', (req, res) => {
-    res.render('blank');
-  });
+    app.get('/forgot', (req, res) => {
+      res.render('forgot');
+    });
 
-  app.get('/email', (req, res) => {
-    res.render('email');
-  });
+    app.get('/login', (req, res) => {
+      res.render('login');
+    });
 
-  app.get('/recovery', (req, res) => {
-    res.render('recovery');
-  });
+    app.get('/blank', (req, res) => {
+      res.render('blank');
+    });
 
-  app.get('/usernames', (req, res) => {
-    res.render('usernames');
-  });
+    app.get('/email', (req, res) => {
+      res.render('email');
+    });
 
-  app.get('/reset', (req, res) => {
-    if (req.query.TEGid != '' && req.query.token != '') {
-      getRequest
-        .handleReset(req.query.TEGid, req.query.token, playerCollection)
-        .then((u) => {
-          res.render('reset', {
-            TEGid: u.user.TEGid,
-            token: u.reset.token,
-          });
-        })
-        .catch((e) => {
-          console.log(e);
-          res.redirect('/blank?expired=true');
-        });
-    } else res.redirect('/blank?expired=true');
-  });
+    app.get('/recovery', (req, res) => {
+      res.render('recovery');
+    });
 
-  app.get('/confirm', (req, res) => {
-    if (req.query.TEGid != '' && req.query.token != '') {
-      getRequest
-        .handleConfirmEmail(req.query.TEGid, req.query.token, playerCollection)
-        .then((data) => {
-          res.redirect('/blank?added=true');
-        })
-        .catch((e) => {
-          console.log(e);
-          res.redirect('/blank?expired=true');
-        });
-    } else res.redirect('/blank?expired=true');
-  });
+    app.get('/usernames', (req, res) => {
+      res.render('usernames');
+    });
 
-  app.post('/auth/register', (req, res) => {
-    var nameCount = 0;
-    if (
-      req.body.name1 != '' &&
-      lowerCaseNames.list1.includes(getLowerCaseName(req.body.name1))
-    )
-      nameCount++;
-    else if (req.body.name1 != '') nameCount = -100;
-    if (
-      req.body.name2 != '' &&
-      lowerCaseNames.list2.includes(getLowerCaseName(req.body.name2))
-    )
-      nameCount++;
-    else if (req.body.name2 != '') nameCount = -100;
-    if (
-      req.body.name3 != '' &&
-      lowerCaseNames.list3.includes(getLowerCaseName(req.body.name3))
-    )
-      nameCount++;
-    else if (req.body.name3 != '') nameCount = -100;
-
-    if (
-      req.body.username != '' &&
-      req.body.password != '' &&
-      nameCount > 1 &&
-      req.body.password == req.body.confirm
-    ) {
-      var names = [req.body.name1, req.body.name2, req.body.name3];
-      postRequest
-        .handleRegister(
-          req.body.username,
-          req.body.password,
-          names,
-          req.body.forgot,
-          playerCollection
-        )
-        .then((u) => {
-          if (u == 'login') {
-            res.redirect('/login?exists=true');
-          } else {
-            res.cookie('TEGid', u.user.TEGid);
-            res.cookie('authid', u.user.authid);
-            res.clearCookie('dname');
-            res.cookie('authpass', u.user.authpass);
-            var date = Date.parse(u.session.expires_at);
-            res.cookie('session_token', u.session.token, {
-              maxAge: date.valueOf() - Date.now(),
+    app.get('/reset', (req, res) => {
+      if (req.query.TEGid != '' && req.query.token != '') {
+        getRequest
+          .handleReset(req.query.TEGid, req.query.token, playerCollection)
+          .then((u) => {
+            res.render('reset', {
+              TEGid: u.user.TEGid,
+              token: u.reset.token,
             });
+          })
+          .catch((e) => {
+            console.log(e);
+            res.redirect('/blank?expired=true');
+          });
+      } else res.redirect('/blank?expired=true');
+    });
+
+    app.get('/confirm', (req, res) => {
+      if (req.query.TEGid != '' && req.query.token != '') {
+        getRequest
+          .handleConfirmEmail(
+            req.query.TEGid,
+            req.query.token,
+            playerCollection
+          )
+          .then((data) => {
+            res.redirect('/blank?added=true');
+          })
+          .catch((e) => {
+            console.log(e);
+            res.redirect('/blank?expired=true');
+          });
+      } else res.redirect('/blank?expired=true');
+    });
+
+    app.post('/auth/register', (req, res) => {
+      var nameCount = 0;
+      if (
+        req.body.name1 != '' &&
+        lowerCaseNames.list1.includes(getLowerCaseName(req.body.name1))
+      )
+        nameCount++;
+      else if (req.body.name1 != '') nameCount = -100;
+      if (
+        req.body.name2 != '' &&
+        lowerCaseNames.list2.includes(getLowerCaseName(req.body.name2))
+      )
+        nameCount++;
+      else if (req.body.name2 != '') nameCount = -100;
+      if (
+        req.body.name3 != '' &&
+        lowerCaseNames.list3.includes(getLowerCaseName(req.body.name3))
+      )
+        nameCount++;
+      else if (req.body.name3 != '') nameCount = -100;
+
+      if (
+        req.body.username != '' &&
+        req.body.password != '' &&
+        nameCount > 1 &&
+        req.body.password == req.body.confirm
+      ) {
+        var names = [req.body.name1, req.body.name2, req.body.name3];
+        postRequest
+          .handleRegister(
+            req.body.username,
+            req.body.password,
+            names,
+            req.body.forgot,
+            playerCollection
+          )
+          .then((u) => {
+            if (u == 'login') {
+              res.redirect('/login?exists=true');
+            } else {
+              res.cookie('TEGid', u.user.TEGid);
+              res.cookie('authid', u.user.authid);
+              res.clearCookie('dname');
+              res.cookie('authpass', u.user.authpass);
+              var date = Date.parse(u.session.expires_at);
+              res.cookie('session_token', u.session.token, {
+                maxAge: date.valueOf() - Date.now(),
+              });
+              res.cookie('logged', false);
+              res.redirect('/email');
+            }
+          })
+          .catch((e) => {
+            console.log(e);
+            res.redirect('/register?failed=true');
+          });
+      } else res.redirect('/register?failed=true');
+    });
+
+    app.post('/auth/forgot', (req, res) => {
+      if (req.body.password == req.body.confirm) {
+        postRequest
+          .handleForgotPassword(
+            req.body.username,
+            req.body.forgot,
+            req.body.password,
+            playerCollection
+          )
+          .then((data) => {
+            res.clearCookie('session_token');
             res.cookie('logged', false);
-            res.redirect('/email');
-          }
-        })
-        .catch((e) => {
-          console.log(e);
-          res.redirect('/register?failed=true');
-        });
-    } else res.redirect('/register?failed=true');
-  });
+            res.redirect('/login');
+          })
+          .catch((e) => {
+            console.log(e);
+            res.redirect('/forgot?failed=true');
+          });
+      } else res.redirect('/forgot?failed=true');
+    });
 
-  app.post('/auth/forgot', (req, res) => {
-    if (req.body.password == req.body.confirm) {
+    app.post('/auth/email', (req, res) => {
       postRequest
-        .handleForgotPassword(
-          req.body.username,
-          req.body.forgot,
-          req.body.password,
-          playerCollection
-        )
-        .then((data) => {
-          res.clearCookie('session_token');
-          res.cookie('logged', false);
-          res.redirect('/login');
-        })
-        .catch((e) => {
-          console.log(e);
-          res.redirect('/forgot?failed=true');
-        });
-    } else res.redirect('/forgot?failed=true');
-  });
-
-  app.post('/auth/email', (req, res) => {
-    postRequest
-      .handleEmail(
-        req.body.TEGid,
-        req.body.email,
-        req.body.token,
-        playerCollection,
-        config.email,
-        config.httpserver.url,
-        transport
-      )
-      .then((data) => {
-        res.redirect('/email?sent=true');
-      })
-      .catch((e) => {
-        console.log(e);
-        res.redirect('/email?failed=true');
-      });
-  });
-
-  app.post('/auth/usernames', (req, res) => {
-    postRequest
-      .handleUsernames(
-        req.body.email,
-        playerCollection,
-        config.email,
-        transport
-      )
-      .then((data) => {
-        res.redirect('/usernames?sent=true');
-      })
-      .catch((e) => {
-        console.log(e);
-        res.redirect('/usernames?failed=true');
-      });
-  });
-
-  app.post('/auth/recovery', (req, res) => {
-    postRequest
-      .handleRecovery(
-        req.body.username,
-        req.body.email,
-        playerCollection,
-        config.email,
-        config.httpserver.url,
-        transport
-      )
-      .then((data) => {
-        res.redirect('/recovery?sent=true');
-      })
-      .catch((e) => {
-        console.log(e);
-        res.redirect('/recovery?failed=true');
-      });
-  });
-
-  app.post('/auth/reset', (req, res) => {
-    if (req.body.password != '' && req.body.password == req.body.confirm) {
-      postRequest
-        .handleReset(
+        .handleEmail(
           req.body.TEGid,
+          req.body.email,
           req.body.token,
-          req.body.forgot,
-          req.body.password,
-          playerCollection
+          playerCollection,
+          config.email,
+          config.httpserver.url,
+          transport
         )
         .then((data) => {
-          res.redirect('/blank?reset=true');
+          res.redirect('/email?sent=true');
         })
         .catch((e) => {
           console.log(e);
-          res.redirect('/reset?failed=true');
+          res.redirect('/email?failed=true');
         });
-    } else res.redirect('/reset?failed=true');
-  });
+    });
 
-  app.get('/auth/login', (req, res) => {
-    var session_token = '';
-    for (var h of req.rawHeaders) {
-      if (h.includes('session_token')) {
-        var cookies = h.split(';');
-        for (var c of cookies) {
-          if (c.includes('session_token')) {
-            session_token = c
-              .replace('session_token=', '')
-              .replace(' ', '')
-              .replace(';', '');
+    app.post('/auth/usernames', (req, res) => {
+      postRequest
+        .handleUsernames(
+          req.body.email,
+          playerCollection,
+          config.email,
+          transport
+        )
+        .then((data) => {
+          res.redirect('/usernames?sent=true');
+        })
+        .catch((e) => {
+          console.log(e);
+          res.redirect('/usernames?failed=true');
+        });
+    });
+
+    app.post('/auth/recovery', (req, res) => {
+      postRequest
+        .handleRecovery(
+          req.body.username,
+          req.body.email,
+          playerCollection,
+          config.email,
+          config.httpserver.url,
+          transport
+        )
+        .then((data) => {
+          res.redirect('/recovery?sent=true');
+        })
+        .catch((e) => {
+          console.log(e);
+          res.redirect('/recovery?failed=true');
+        });
+    });
+
+    app.post('/auth/reset', (req, res) => {
+      if (req.body.password != '' && req.body.password == req.body.confirm) {
+        postRequest
+          .handleReset(
+            req.body.TEGid,
+            req.body.token,
+            req.body.forgot,
+            req.body.password,
+            playerCollection
+          )
+          .then((data) => {
+            res.redirect('/blank?reset=true');
+          })
+          .catch((e) => {
+            console.log(e);
+            res.redirect('/reset?failed=true');
+          });
+      } else res.redirect('/reset?failed=true');
+    });
+
+    app.get('/auth/login', (req, res) => {
+      var session_token = '';
+      for (var h of req.rawHeaders) {
+        if (h.includes('session_token')) {
+          var cookies = h.split(';');
+          for (var c of cookies) {
+            if (c.includes('session_token')) {
+              session_token = c
+                .replace('session_token=', '')
+                .replace(' ', '')
+                .replace(';', '');
+            }
           }
         }
       }
-    }
-    if (req.query.username != '' && req.query.password != '') {
-      getRequest
-        .handleLogin(
-          req.query.username,
-          req.query.password,
-          session_token,
-          playerCollection
-        )
-        .then((u) => {
-          var date = Date.parse(u.session.expires_at);
-          res.cookie('TEGid', u.user.TEGid, {
-            maxAge: date.valueOf() - Date.now(),
-          });
-          res.cookie('authid', u.user.authid, {
-            maxAge: date.valueOf() - Date.now(),
-          });
-          res.cookie('authpass', u.user.authpass, {
-            maxAge: date.valueOf() - Date.now(),
-          });
-          res.cookie('session_token', u.session.token, {
-            maxAge: date.valueOf() - Date.now(),
-          });
-          if (u.email.confirmed) {
-            res.cookie('dname', u.user.dname, {
+      if (req.query.username != '' && req.query.password != '') {
+        getRequest
+          .handleLogin(
+            req.query.username,
+            req.query.password,
+            session_token,
+            playerCollection
+          )
+          .then((u) => {
+            var date = Date.parse(u.session.expires_at);
+            res.cookie('TEGid', u.user.TEGid, {
               maxAge: date.valueOf() - Date.now(),
             });
-            res.cookie('logged', true, {
+            res.cookie('authid', u.user.authid, {
               maxAge: date.valueOf() - Date.now(),
             });
-            res.redirect('/');
-          } else {
-            res.clearCookie('dname');
-            res.cookie('logged', false, {
+            res.cookie('authpass', u.user.authpass, {
               maxAge: date.valueOf() - Date.now(),
             });
-            res.redirect('/email');
-          }
+            res.cookie('session_token', u.session.token, {
+              maxAge: date.valueOf() - Date.now(),
+            });
+            if (u.email.confirmed) {
+              res.cookie('dname', u.user.dname, {
+                maxAge: date.valueOf() - Date.now(),
+              });
+              res.cookie('logged', true, {
+                maxAge: date.valueOf() - Date.now(),
+              });
+              res.redirect('/');
+            } else {
+              res.clearCookie('dname');
+              res.cookie('logged', false, {
+                maxAge: date.valueOf() - Date.now(),
+              });
+              res.redirect('/email');
+            }
+          })
+          .catch((e) => {
+            console.log(e);
+            res.redirect('/login?failed=true');
+          });
+      }
+    });
+
+    app.post('/exonaut/ExonautPlayerAuthenticate', (req, res) => {
+      postRequest
+        .handleLogin(req.body.TEGid, req.body.authid, playerCollection)
+        .then((data) => {
+          res.send(data);
         })
         .catch((e) => {
           console.log(e);
-          res.redirect('/login?failed=true');
         });
-    }
-  });
+    });
 
-  app.post('/exonaut/ExonautPlayerAuthenticate', (req, res) => {
-    postRequest
-      .handleLogin(req.body.TEGid, req.body.authid, playerCollection)
-      .then((data) => {
-        res.send(data);
-      })
-      .catch((e) => {
-        console.log(e);
-      });
-  });
+    app.post('/exonaut/ExonautPlayerBuySuit', (req, res) => {
+      postRequest
+        .handlePurchase(
+          req.body.TEGid,
+          req.body.exId,
+          req.body.buySuitId,
+          playerCollection,
+          gameData
+        )
+        .then((data) => {
+          res.send(data);
+        })
+        .catch(console.error);
+    });
 
-  app.post('/exonaut/ExonautPlayerBuySuit', (req, res) => {
-    postRequest
-      .handlePurchase(
-        req.body.TEGid,
-        req.body.exId,
-        req.body.buySuitId,
-        playerCollection,
-        gameData
-      )
-      .then((data) => {
-        res.send(data);
-      })
-      .catch(console.error);
-  });
+    app.post('/exonaut/ExonautPlayerInstall', (req, res) => {
+      postRequest
+        .handleInstall(
+          req.body.TEGid,
+          req.body.login,
+          req.body.suit,
+          req.body.faction,
+          playerCollection,
+          gameData
+        )
+        .then((data) => {
+          res.send(data);
+        })
+        .catch(console.error);
+    });
 
-  app.post('/exonaut/ExonautPlayerInstall', (req, res) => {
-    postRequest
-      .handleInstall(
-        req.body.TEGid,
-        req.body.login,
-        req.body.suit,
-        req.body.faction,
-        playerCollection,
-        gameData
-      )
-      .then((data) => {
-        res.send(data);
-      })
-      .catch(console.error);
-  });
+    // TODO
+    app.post('/exonaut/ExonautMetric', (req, res) => {
+      postRequest
+        .handleMetric()
+        .then((data) => {
+          res.send(data);
+        })
+        .catch(console.error);
+    });
 
-  // TODO
-  app.post('/exonaut/ExonautMetric', (req, res) => {
-    postRequest
-      .handleMetric()
-      .then((data) => {
-        res.send(data);
-      })
-      .catch(console.error);
-  });
+    // TODO
+    app.post('/exonaut/ExonautPlayerGetMissionProgress', (req, res) => {
+      postRequest
+        .handleMissionProgress(req.body.exId)
+        .then((data) => {
+          res.send(data);
+        })
+        .catch(console.error);
+    });
 
-  // TODO
-  app.post('/exonaut/ExonautPlayerGetMissionProgress', (req, res) => {
-    postRequest
-      .handleMissionProgress(req.body.exId)
-      .then((data) => {
-        res.send(data);
-      })
-      .catch(console.error);
+    app.listen(config.httpserver.port, () => {
+      console.info(`Express server running on port ${config.httpserver.port}!`);
+      if (config.sockpol.enable) {
+        const policyContent = fs.readFileSync(config.sockpol.file, 'utf8');
+        const sockpol = new SocketPolicyServer(
+          config.sockpol.port,
+          policyContent
+        );
+        sockpol.start(() => {
+          console.info(`Socket policy running on port ${config.sockpol.port}!`);
+        });
+      }
+    });
+  })
+  .catch((err) => {
+    console.error('FATAL: MongoDB connect failed: ' + err);
+    process.exit(1);
   });
-
-  app.listen(config.httpserver.port, () => {
-    console.info(`Express server running on port ${config.httpserver.port}!`);
-    if (config.sockpol.enable) {
-      const policyContent = fs.readFileSync(config.sockpol.file, 'utf8');
-      const sockpol = new SocketPolicyServer(
-        config.sockpol.port,
-        policyContent
-      );
-      sockpol.start(() => {
-        console.info(`Socket policy running on port ${config.sockpol.port}!`);
-      });
-    }
-  });
-});
