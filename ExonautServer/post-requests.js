@@ -396,10 +396,9 @@ module.exports = {
                     'player.Faction': faction,
                   },
                 },
-                { returnOriginal: false }
+                { returnDocument: 'after' }
               )
-              .then((result) => {
-                u = result.value;
+              .then((u) => {
                 if (u != null) {
                   xw = new XMLWriter();
                   xw.startElement('result')
@@ -424,14 +423,7 @@ module.exports = {
                   xw.endElement();
                   resolve(xw.toString());
                 } else {
-                  reject(
-                    new Error(
-                      'null user from faction registration. ok: ' +
-                        result.ok +
-                        '. lastErrorObject: ' +
-                        result.lastErrorObject
-                    )
-                  );
+                  reject(new Error('null user from faction registration.'));
                 }
               });
           } else {
