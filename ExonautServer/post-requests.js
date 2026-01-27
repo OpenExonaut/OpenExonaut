@@ -400,28 +400,39 @@ module.exports = {
               )
               .then((result) => {
                 u = result.value;
-                xw = new XMLWriter();
-                xw.startElement('result')
-                  .writeAttribute('status', 'new')
-                  .writeAttribute(
-                    'id',
-                    Number('0x' + u.session.token.split('-')[0].slice(0, -1))
+                if (u != null) {
+                  xw = new XMLWriter();
+                  xw.startElement('result')
+                    .writeAttribute('status', 'new')
+                    .writeAttribute(
+                      'id',
+                      Number('0x' + u.session.token.split('-')[0].slice(0, -1))
+                    );
+
+                  xw.startElement('suitsOwned');
+                  for (suit of u.inventory) {
+                    xw.writeElement('suit', suit);
+                  }
+                  xw.endElement();
+
+                  // TODO
+                  xw.writeElement('missionsCompleted', '');
+
+                  // TODO
+                  xw.writeElement('missionsProgress', '');
+
+                  xw.endElement();
+                  resolve(xw.toString());
+                } else {
+                  reject(
+                    new Error(
+                      'null user from faction registration. ok: ' +
+                        result.ok +
+                        '. lastErrorObject: ' +
+                        result.lastErrorObject
+                    )
                   );
-
-                xw.startElement('suitsOwned');
-                for (suit of u.inventory) {
-                  xw.writeElement('suit', suit);
                 }
-                xw.endElement();
-
-                // TODO
-                xw.writeElement('missionsCompleted', '');
-
-                // TODO
-                xw.writeElement('missionsProgress', '');
-
-                xw.endElement();
-                resolve(xw.toString());
               });
           } else {
             reject(new Error('Suit does not belong to faction'));
