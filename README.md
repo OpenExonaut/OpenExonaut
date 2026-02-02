@@ -17,7 +17,7 @@ Originally, Project Exonaut required several server-side components in order to 
 * Socket policy server to satisfy the Unity Web Player [security sandbox](https://docs.unity3d.com/351/Documentation/Manual/SecuritySandbox.html)
 * SmartFoxServer2X with custom zone and room extensions acting as the matchmaking server and actual game server respectively
 
-To simplify development and deployment, all but the last component have been combined into one piece of software, which is available under the `ExonautServer` directory. The SmartFoxServer2X extensions live under the `ExonautExtension` directory.
+To simplify development and deployment, all but the last component have been combined into one piece of software, which is available under the `ExonautServer` directory. The SmartFoxServer2X extensions and servlet live under the `ExonautExtension` directory.
 
 ~~More in-depth explanations of each component, how the client interacts with them, and how request/response packets are structured can be found in the `docs/` folder.~~
 This is unfortunately not available yet, but work is slowly being done. For the time being, feel free to reference decompiled client code generated via ILSpy/dnSpy.
@@ -40,8 +40,8 @@ This is unfortunately not available yet, but work is slowly being done. For the 
 1. Run ExonautServer using the following command: `npm run start` - if done correctly you should see `Express server running on port 80!`
 1. Start SmartFoxServer2X once so it can generate the correct files and folders, then close it
 1. Open another terminal, this time in the root of the repository
-1. Run the following commands to copy necessary files, then compile the game extensions: `.\gradlew ExonautExtension:copySFS2XLibs`, `.\gradlew ExonautExtension:allJars`
-1. Provided there weren't any errors, deploy the SmartFox extensions and library: `.\gradlew ExonautExtension:copyDataFiles`, `.\gradlew ExonautExtension:deployAllJars`
+1. Run the following commands to copy necessary files, then compile the game extensions, servlet, and library: `.\gradlew ExonautExtension:copySFS2XLibs`, `.\gradlew ExonautExtension:allJars`
+1. Provided there weren't any errors, deploy the SmartFox extensions, servlet, and library: `.\gradlew ExonautExtension:copyDataFiles`, `.\gradlew ExonautExtension:deployAllJars`
 1. Copy the example config in the SFS2X extension directory (SFS2X/extensions/Exonaut, should be right next to two jar files): `cp config.properties.example config.properties` - once copied, edit it to include the same URI string you did in step 4.
 1. Start SmartFoxServer2X, you should see a log line indicating the zone extension is working: `Exonaut Zone Extension init finished`
 1. Finally, connect to http://127.0.0.1:80 with an NPAPI-compatible browser such as Pale Moon to test the game!
@@ -53,4 +53,4 @@ These instructions are subject to change, if you run into any problems or have q
 ## License
 MIT unless specified otherwise
 
-![SFS2X Logo](docs/sfs2xlogo.png)
+![SFS2X Logo](ExonautServer/static/img/sfs2xlogo.png)

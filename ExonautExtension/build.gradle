@@ -4,6 +4,7 @@ plugins {
 }
 
 apply plugin: 'java'
+apply plugin: 'war'
 group = 'xyz.openexonaut'
 version = '0.1.0-SNAPSHOT'
 
@@ -90,6 +91,12 @@ tasks.register('deployExonautRoomExtension', Copy) {
     into new File(getSFS2XPath(), 'extensions/Exonaut/')
 }
 
+tasks.register('deployExonautServlet', Copy) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    from layout.buildDirectory.file('libs/ExonautServlet.war')
+    into new File(getSFS2XPath(), 'www/')
+}
+
 tasks.register('deployDependencies', Copy) {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from {
@@ -107,6 +114,7 @@ tasks.register('deployAllJars') {
     dependsOn tasks.deployExonautLib
     dependsOn tasks.deployExonautZoneExtension
     dependsOn tasks.deployExonautRoomExtension
+    dependsOn tasks.deployExonautServlet
 }
 
 tasks.withType(JavaCompile) {
@@ -141,10 +149,18 @@ task roomJar(type: Jar) {
     }
 }
 
+task servletWar(type: War) {
+    archiveFileName = "ExonautServlet.war"
+    webXml = file("xml/web.xml")
+    rootSpec.exclude("**/extension/**")
+    classpath = project.files("build/classes/java/main")
+}
+
 tasks.register('allJars') {
     dependsOn tasks.libJar
     dependsOn tasks.zoneJar
     dependsOn tasks.roomJar
+    dependsOn tasks.servletWar
 }
 
 repositories {
@@ -158,6 +174,7 @@ dependencies {
                          'lib/slf4j-api-1.7.5.jar', 'lib/slf4j-log4j12-1.7.5.jar')
 
     implementation 'org.mongodb:mongodb-driver-sync:5.6.2'
+    implementation 'javax.servlet:javax.servlet-api:4.0.1'
 }
 
 assemble.dependsOn copySFS2XLibs
@@ -165,6 +182,10 @@ compileJava.dependsOn copySFS2XLibs
 
 tasks.jar.configure {
     dependsOn allJars
+    onlyIf { false }
+}
+tasks.war.configure {
+    dependsOn servletWar
     onlyIf { false }
 }
 

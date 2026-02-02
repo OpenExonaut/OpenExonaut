@@ -12,3 +12,5 @@ static/*
 !static/js/
 !static/js/*
 !static/favicon.ico
+!static/img/
+!static/img/*

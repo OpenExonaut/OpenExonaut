@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<web-app
+   xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+   metadata-complete="false"
+   version="3.1">
+ 
+    <display-name>ExonautServlet</display-name>
+ 
+    <servlet>
+        <servlet-name>ExonautOnline</servlet-name>
+        <servlet-class>xyz.openexonaut.servlet.ExonautOnline</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ExonautOnline</servlet-name>
+        <url-pattern>/online</url-pattern>
+    </servlet-mapping>
+</web-app>
