@@ -19,10 +19,11 @@ public class SendChangeWeapon {
         if (idx == null) {
             ErrorReceipt.handle(room, player, params, evtName);
         } else {
-            ExoSendUtils.sendEventObjectToAll(
+            ExoSendUtils.sendEventObjectToOne(
                     room,
                     ExoParamUtils.serialize(
-                            new SendChangeWeapon(idx), player.user.getPlayerId(room)));
+                            new SendChangeWeapon(idx), player.user.getPlayerId(room)),
+                    player.user);
         }
     }
 }
