@@ -398,6 +398,7 @@ MongoClient.connect(config.httpserver.mongouri, {
       postRequest
         .handleLogin(req.body.TEGid, req.body.authid, playerCollection)
         .then((data) => {
+          res.set('Content-Type', 'text/xml');
           res.send(data);
         })
         .catch((e) => {
@@ -415,6 +416,7 @@ MongoClient.connect(config.httpserver.mongouri, {
           gameData
         )
         .then((data) => {
+          res.set('Content-Type', 'text/xml');
           res.send(data);
         })
         .catch(console.error);
@@ -431,6 +433,7 @@ MongoClient.connect(config.httpserver.mongouri, {
           gameData
         )
         .then((data) => {
+          res.set('Content-Type', 'text/xml');
           res.send(data);
         })
         .catch(console.error);
@@ -441,6 +444,7 @@ MongoClient.connect(config.httpserver.mongouri, {
       postRequest
         .handleMetric()
         .then((data) => {
+          res.set('Content-Type', 'text/xml');
           res.send(data);
         })
         .catch(console.error);
@@ -451,6 +455,7 @@ MongoClient.connect(config.httpserver.mongouri, {
       postRequest
         .handleMissionProgress(req.body.exId)
         .then((data) => {
+          res.set('Content-Type', 'text/xml');
           res.send(data);
         })
         .catch(console.error);
