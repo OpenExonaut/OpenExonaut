@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022-2024 OpenATBP Contributors, 2024-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 const bcrypt = require('bcrypt');
 const dbOp = require('./db-operations.js');
 const crypto = require('crypto');

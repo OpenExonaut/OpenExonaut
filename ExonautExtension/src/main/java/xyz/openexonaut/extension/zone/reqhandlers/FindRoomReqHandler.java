@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2024-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 package xyz.openexonaut.extension.zone.reqhandlers;
 
 import com.smartfoxserver.v2.entities.*;

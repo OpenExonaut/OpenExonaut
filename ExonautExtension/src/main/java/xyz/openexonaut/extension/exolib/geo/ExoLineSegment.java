@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 package xyz.openexonaut.extension.exolib.geo;
 
 import xyz.openexonaut.extension.exolib.utils.*;
@@ -29,7 +35,17 @@ public class ExoLineSegment extends ExoShape {
                 vertexOne.plus(position.x, position.y), vertexTwo.plus(position.x, position.y));
     }
 
-    // https://stackoverflow.com/a/3746601
+    // SPDX-SnippetBegin
+    /*
+        SPDX-SnippetCopyrightText: 2010-2011 Callum Rogers et al, 2025-2026 OpenExonaut Contributors
+        SPDX-License-Identifier: CC-BY-SA-3.0
+
+        Source - https://stackoverflow.com/a/3746601
+        Retrieved 2025-12-01
+        Posted by Callum Rogers, modified by community. See post 'Timeline' for change history
+
+        Modified for optimization and fitness for purpose.
+    */
     @Override
     public ExoLineTestResult testLine(
             float startX, float startY, float dx, float dy, float length) {
@@ -50,7 +66,19 @@ public class ExoLineSegment extends ExoShape {
         return new ExoLineTestResult(startX + t * dx, startY + t * dy, t * length);
     }
 
-    // https://stackoverflow.com/a/1084899
+    // SPDX-SnippetEnd
+
+    // SPDX-SnippetBegin
+    /*
+        SPDX-SnippetCopyrightText: 2009-2020 bobobobo et al, 2025-2026 OpenExonaut Contributors
+        SPDX-License-Identifier: CC-BY-SA-4.0
+
+        Source - https://stackoverflow.com/a/1084899
+        Retrieved 2025-12-01
+        Posted by bobobobo, modified by community. See post 'Timeline' for change history
+
+        Modified to include full-insideness and for optimization and fitness for purpose.
+    */
     @Override
     public boolean testCircle(float x, float y, float radius, float radiusSquared) {
         float fX = vertexOne.x - x;
@@ -73,6 +101,8 @@ public class ExoLineSegment extends ExoShape {
         float t2 = (b + discriminant) / doubleLenDotProduct;
         return t2 >= 0f && t2 <= 1f;
     }
+
+    // SPDX-SnippetEnd
 
     @Override
     public boolean equals(Object o) {

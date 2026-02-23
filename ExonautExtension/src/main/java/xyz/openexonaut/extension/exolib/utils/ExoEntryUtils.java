@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 package xyz.openexonaut.extension.exolib.utils;
 
 import java.util.*;
@@ -99,7 +105,6 @@ public final class ExoEntryUtils {
         List<UserVariable> userVars = new ArrayList<>();
         ExoPlayer player = (ExoPlayer) sender.getProperty("ExoPlayer");
         boolean team = modeParam.equals("team");
-        boolean banzai = sender.getVariable("faction").getStringValue().equals("banzai");
         String mode = team ? "team" : "freeforall";
         ExoSuit suit = ExoGameData.getSuit(sender.getVariable("suitId").getIntValue());
         MatchExpression roomMatch = new MatchExpression("mode", StringMatch.EQUALS, mode);
@@ -121,6 +126,7 @@ public final class ExoEntryUtils {
         player.setSuit(suit);
 
         if (team) {
+            boolean banzai = sender.getVariable("faction").getStringValue().equals("banzai");
             roomMatch =
                     roomMatch.and(
                             "imbalance",

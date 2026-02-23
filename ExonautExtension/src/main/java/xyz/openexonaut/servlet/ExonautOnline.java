@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 package xyz.openexonaut.servlet;
 
 import java.io.*;
