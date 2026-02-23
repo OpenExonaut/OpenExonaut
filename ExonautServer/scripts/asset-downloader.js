@@ -37,10 +37,7 @@ dl.on('start', () => {
   console.log('Downloading game assets... this may take a while.');
 });
 
-if (
-  !fs.existsSync('static/exonaut-0.9.3.6119.unity3d') ||
-  !fs.existsSync('static/suits')
-) {
+if (!fs.existsSync('static/suits')) {
   dl.start().catch((err) => console.error(err));
 } else {
   console.log('Asset files already present, skipping download.');
