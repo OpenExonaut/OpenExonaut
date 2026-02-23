@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022-2024 OpenATBP Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 const net = require('net');
 
 module.exports = class SocketPolicyServer {

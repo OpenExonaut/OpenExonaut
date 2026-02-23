@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2022-2024 OpenATBP Contributors
+# SPDX-License-Identifier: MIT
+
 static/css/bootstrap*
 static/js/bootstrap*
 *.min.css

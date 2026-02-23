@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package xyz.openexonaut.servlet;
 
 import java.io.*;

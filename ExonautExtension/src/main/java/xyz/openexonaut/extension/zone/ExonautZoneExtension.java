@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2024-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package xyz.openexonaut.extension.zone;
 
 import java.io.*;
@@ -54,7 +60,11 @@ public class ExonautZoneExtension extends SFSExtension implements Runnable {
         propsHandle =
                 SmartFoxServer.getInstance()
                         .getTaskScheduler()
-                        .scheduleAtFixedRate(this, configReload, configReload, TimeUnit.SECONDS);
+                        .scheduleAtFixedRate(
+                                new Thread(this, "propsReload_ExonautZoneExtension"),
+                                configReload,
+                                configReload,
+                                TimeUnit.SECONDS);
 
         addRequestHandler("findRoom", FindRoomReqHandler.class);
 
@@ -68,8 +78,8 @@ public class ExonautZoneExtension extends SFSExtension implements Runnable {
     @Override
     public void run() {
         Properties newProps = new Properties();
-        try {
-            newProps.load(new FileInputStream(propertiesPath));
+        try (FileInputStream propertiesFile = new FileInputStream(propertiesPath)) {
+            newProps.load(propertiesFile);
         } catch (IOException e) {
             logger.error("props reload error", e);
             return;

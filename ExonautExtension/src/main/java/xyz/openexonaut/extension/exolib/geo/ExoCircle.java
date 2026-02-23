@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package xyz.openexonaut.extension.exolib.geo;
 
 import xyz.openexonaut.extension.exolib.utils.*;
@@ -18,7 +24,17 @@ public class ExoCircle extends ExoShape {
         return new ExoCircle(center.plus(position.x, position.y), radius);
     }
 
-    // https://stackoverflow.com/a/1084899
+    // SPDX-SnippetBegin
+    /*
+        SPDX-SnippetCopyrightText: 2009-2020 bobobobo et al, 2025-2026 OpenExonaut Contributors
+        SPDX-License-Identifier: CC-BY-SA-4.0
+
+        Source - https://stackoverflow.com/a/1084899
+        Retrieved 2025-12-01
+        Posted by bobobobo, modified by community. See post 'Timeline' for change history
+
+        Modified to include full-insideness and for optimization and fitness for purpose.
+    */
     @Override
     public ExoLineTestResult testLine(
             float startX, float startY, float dx, float dy, float length) {
@@ -49,6 +65,8 @@ public class ExoCircle extends ExoShape {
 
         return new ExoLineTestResult(startX + t * dx, startY + t * dy, t * length);
     }
+
+    // SPDX-SnippetEnd
 
     @Override
     public boolean testCircle(float x, float y, float radius, float radiusSquared) {

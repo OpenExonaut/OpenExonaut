@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package xyz.openexonaut.extension.exolib.game;
 
 import java.awt.*;
@@ -41,6 +47,10 @@ public class ExoGame extends ExoTickable implements Runnable {
     private ScheduledFuture<?> gameHandle = null;
     private ScheduledFuture<?> peekHandle = null;
 
+    private boolean banzaiWon = false;
+    private boolean atlasWon = false;
+    private int mostHacks = 0;
+
     public ExoGame(Room room) {
         this.room = room;
         this.scheduler = SmartFoxServer.getInstance().getTaskScheduler();
@@ -48,6 +58,19 @@ public class ExoGame extends ExoTickable implements Runnable {
         timeLimit = teamRoom ? ExoProps.getTeamTime() : ExoProps.getSoloTime();
 
         init();
+    }
+
+    public int getMapId() {
+        return room.getVariable("mapId").getIntValue();
+    }
+
+    public boolean playerWon(ExoPlayer player) {
+        if (teamRoom) {
+            return player.user.getVariable("faction").getStringValue().equals("banzai")
+                    ? banzaiWon
+                    : atlasWon;
+        }
+        return player.getHacks() == mostHacks;
     }
 
     public void init() {
@@ -138,7 +161,12 @@ public class ExoGame extends ExoTickable implements Runnable {
             if (room.getVariable("state").getStringValue().equals("wait_for_min_players")) {
                 setVariables(List.of(new SFSRoomVariable("state", "countdown")));
                 prime();
-                gameHandle = scheduler.scheduleAtFixedRate(this, 0, 125, TimeUnit.MILLISECONDS);
+                gameHandle =
+                        scheduler.scheduleAtFixedRate(
+                                new Thread(this, String.format("game_%s", room.getName())),
+                                0,
+                                125,
+                                TimeUnit.MILLISECONDS);
             }
         }
     }
@@ -161,7 +189,11 @@ public class ExoGame extends ExoTickable implements Runnable {
                 if (queueTime == 0f) {
                     // whoops, too late, carry on
                     gameHandle =
-                            scheduler.scheduleAtFixedRate(this, 125, 125, TimeUnit.MILLISECONDS);
+                            scheduler.scheduleAtFixedRate(
+                                    new Thread(this, String.format("game_%s", room.getName())),
+                                    125,
+                                    125,
+                                    TimeUnit.MILLISECONDS);
                 } else {
                     setVariables(List.of(new SFSRoomVariable("state", "wait_for_min_players")));
                     queueTime = ExoProps.getQueueWaitLeastPlayers();
@@ -188,9 +220,9 @@ public class ExoGame extends ExoTickable implements Runnable {
                                 ((ExoPlayer) b.getProperty("ExoPlayer")).getHacks()
                                         - ((ExoPlayer) a.getProperty("ExoPlayer"))
                                                 .getHacks())); // sort by descending hacks
-        int mostHacks = ((ExoPlayer) sortedUsers.get(0).getProperty("ExoPlayer")).getHacks();
-        boolean banzaiWon = banzaiHacks.get() > atlasHacks.get();
-        boolean atlasWon = atlasHacks.get() > banzaiHacks.get();
+        mostHacks = ((ExoPlayer) sortedUsers.get(0).getProperty("ExoPlayer")).getHacks();
+        banzaiWon = banzaiHacks.get() > atlasHacks.get();
+        atlasWon = atlasHacks.get() > banzaiHacks.get();
 
         ISFSObject sendSummaryParams = new SFSObject();
 
@@ -279,7 +311,10 @@ public class ExoGame extends ExoTickable implements Runnable {
                     peek = new ExoPeek();
                     peekHandle =
                             scheduler.scheduleAtFixedRate(
-                                    peek, 62500, 125000, TimeUnit.NANOSECONDS);
+                                    new Thread(peek, String.format("peek_%s", room.getName())),
+                                    62500,
+                                    125000,
+                                    TimeUnit.NANOSECONDS);
                 }
 
                 ISFSObject timerUpdate = new SFSObject();

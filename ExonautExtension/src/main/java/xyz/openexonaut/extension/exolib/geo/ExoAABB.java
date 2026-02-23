@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package xyz.openexonaut.extension.exolib.geo;
 
 public class ExoAABB extends ExoShape {
@@ -30,7 +36,16 @@ public class ExoAABB extends ExoShape {
         return new ExoAABB(center.plus(position.x, position.y), halfWidth, halfHeight);
     }
 
-    // https://noonat.github.io/intersect/#aabb-vs-segment
+    // SPDX-SnippetBegin
+    /*
+        SPDX-SnippetCopyrightText: 2011-2019 Nathan Ostgard, 2025-2026 OpenExonaut Contributors
+        SPDX-License-Identifier: Zlib
+
+        Source - https://github.com/noonat/intersect/blob/master/src/intersect.ts#L120
+        Retrieved 2025-12-01
+
+        Modified to include full-insideness and for optimization.
+    */
     @Override
     public ExoLineTestResult testLine(
             float startX, float startY, float dx, float dy, float length) {
@@ -59,7 +74,19 @@ public class ExoAABB extends ExoShape {
         return new ExoLineTestResult(startX + t * dx, startY + t * dy, t * length);
     }
 
-    // https://gamedev.stackexchange.com/a/178154
+    // SPDX-SnippetEnd
+
+    // SPDX-SnippetBegin
+    /*
+        SPDX-SnippetCopyrightText: 2020-2024 Ghoster et al, 2025-2026 OpenExonaut Contributors
+        SPDX-License-Identifier: CC-BY-SA-4.0
+
+        Source - https://gamedev.stackexchange.com/a/178154
+        Retrieved 2025-12-01
+        Posted by Ghoster, modified by community. See post 'Timeline' for change history
+
+        Modified for optimization.
+    */
     @Override
     public boolean testCircle(float x, float y, float radius, float radiusSquared) {
         float distanceX = x - center.x;
@@ -76,6 +103,8 @@ public class ExoAABB extends ExoShape {
 
         return distX * distX + distY * distY <= radiusSquared;
     }
+
+    // SPDX-SnippetEnd
 
     @Override
     public boolean equals(Object o) {

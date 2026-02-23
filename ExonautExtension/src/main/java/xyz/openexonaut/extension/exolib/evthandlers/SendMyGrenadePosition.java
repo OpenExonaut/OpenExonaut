@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2024-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package xyz.openexonaut.extension.exolib.evthandlers;
 
 import java.util.concurrent.atomic.*;

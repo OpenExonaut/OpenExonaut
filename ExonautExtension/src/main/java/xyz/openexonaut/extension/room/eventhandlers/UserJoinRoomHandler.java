@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2024-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 package xyz.openexonaut.extension.room.eventhandlers;
 
 import com.smartfoxserver.v2.core.*;

@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022-2024 OpenATBP Contributors, 2024-2026 OpenExonaut Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 const fs = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
