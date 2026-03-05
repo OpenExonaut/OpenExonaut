@@ -43,17 +43,15 @@ public class ExonautZoneExtension extends SFSExtension implements Runnable {
                                                     String.format(
                                                             "%s/exonaut/gamedata.json",
                                                             props.getProperty("httpURI")))
-                                            .toURL()));
+                                            .toURL()),
+                    Paths.get(getCurrentFolder(), "worlds"),
+                    Math.max(0f, Float.parseFloat(props.getProperty("debugGFXScale"))));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         ExoProps.init(props);
         ExoDB.init(props.getProperty("mongoURI"));
-        ExoMapManager.init(
-                Paths.get(getCurrentFolder(), "worlds"),
-                Integer.parseInt(props.getProperty("mapCount")),
-                Math.max(0f, Float.parseFloat(props.getProperty("debugGFXScale"))));
 
         int configReload = Integer.parseInt(props.getProperty("configReload"));
         propertiesPath = String.format("extensions/%s/%s", getName(), getPropertiesFileName());

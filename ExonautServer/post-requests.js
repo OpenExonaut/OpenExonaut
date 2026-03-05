@@ -7,7 +7,6 @@
 const bcrypt = require('bcrypt');
 const dbOp = require('./db-operations.js');
 const crypto = require('crypto');
-const XMLWriter = require('xml-writer');
 
 module.exports = {
   handleRegister: function (username, password, names, forgot, collection) {
@@ -327,44 +326,35 @@ module.exports = {
             //User exists
             if (u.player.Faction == 0) {
               //User has not yet joined a faction
-              resolve(
-                `<result status="newplayer" TEGID="${TEGid}" LoginName="${authid}"/>`
-              );
+              resolve({
+                status: 'newplayer',
+                player: {
+                  TEGID: `${u.user.TEGid}`,
+                  LoginName: `${u.user.authid}`,
+                },
+              });
             } else {
-              xw = new XMLWriter();
-              xw.startElement('result')
-                .writeAttribute('status', 'exoplayer')
-                .writeAttribute('TEGID', TEGid)
-                .writeAttribute('LoginName', authid)
-                .writeAttribute(
-                  'ID',
-                  Number('0x' + u.session.token.split('-')[0].slice(0, -1))
-                ) // needs to fit an i32. any better ideas?
-                .writeAttribute('Faction', u.player.Faction)
-                .writeAttribute('Level', u.player.Level)
-                .writeAttribute('XP', u.player.XP)
-                .writeAttribute('Credits', u.player.Credits)
-                .writeAttribute('SessionID', u.session.token)
-                .writeAttribute('LastSuit', u.player.LastSuit);
-
-              xw.startElement('suitsOwned');
-              for (suit of u.inventory) {
-                xw.writeElement('suit', suit);
-              }
-              xw.endElement();
-
-              // TODO
-              xw.writeElement('missionsCompleted', '');
-
-              // TODO
-              xw.writeElement('missionsProgress', '');
-
-              xw.endElement();
-              resolve(xw.toString());
+              resolve({
+                status: 'exoplayer',
+                player: {
+                  TEGID: `${u.user.TEGid}`,
+                  LoginName: `${u.user.authid}`,
+                  ID: `${Number('0x' + u.session.token.split('-')[0].slice(0, -1))}`,
+                  Faction: `${u.player.Faction}`,
+                  Level: `${u.player.Level}`,
+                  XP: `${u.player.XP}`,
+                  Credits: `${u.player.Credits}`,
+                  SessionID: `${u.session.token}`,
+                  LastSuit: `${u.player.LastSuit}`,
+                },
+                suitsOwned: u.inventory,
+                missionsCompleted: [], // TODO
+                missionsProgress: [], // TODO
+              });
             }
           } else {
             //User does not exist
-            resolve('<result status="guest"/>');
+            resolve({ status: 'guest' });
           }
         })
         .catch((err) => {
@@ -406,28 +396,13 @@ module.exports = {
               )
               .then((u) => {
                 if (u != null) {
-                  xw = new XMLWriter();
-                  xw.startElement('result')
-                    .writeAttribute('status', 'new')
-                    .writeAttribute(
-                      'id',
-                      Number('0x' + u.session.token.split('-')[0].slice(0, -1))
-                    );
-
-                  xw.startElement('suitsOwned');
-                  for (suit of u.inventory) {
-                    xw.writeElement('suit', suit);
-                  }
-                  xw.endElement();
-
-                  // TODO
-                  xw.writeElement('missionsCompleted', '');
-
-                  // TODO
-                  xw.writeElement('missionsProgress', '');
-
-                  xw.endElement();
-                  resolve(xw.toString());
+                  resolve({
+                    status: 'new',
+                    id: `${Number('0x' + u.session.token.split('-')[0].slice(0, -1))}`,
+                    suitsOwned: u.inventory,
+                    missionsCompleted: [], // TODO
+                    missionsProgress: [], // TODO
+                  });
                 } else {
                   reject(new Error('null user from faction registration.'));
                 }
@@ -475,9 +450,9 @@ module.exports = {
             )
             .then((r) => {
               if (r.modifiedCount == 0) {
-                resolve('<result status="fail"/>');
+                resolve({ status: 'fail' });
               } else {
-                resolve('<result status="success"/>');
+                resolve({ status: 'success' });
               }
             });
         } else {
@@ -492,14 +467,14 @@ module.exports = {
   handleMetric: function () {
     // /exonaut/ExonautMetric PROVIDES SessionID, ID, WantToPlay, GuestOrLogin, InHangar, RequestBattle, RequestTeamBattle, InLobby, MatchReady, NewMatchStart, DropIntoMatch, MatchLeftQuit, MatchLeftError, MatchCompleted, sessionTime RETURNS result
     return new Promise(function (resolve, reject) {
-      resolve('<result/>');
+      resolve({});
     });
   },
   // TODO
   handleMissionProgress: function (exId) {
     // /exonaut/ExonautPlayerGetMissionProgress PROVIDES exId RETURNS result
     return new Promise(function (resolve, reject) {
-      resolve('<result status="fail"/>'); // client tolerates "fail"
+      resolve({ status: 'fail' }); // client tolerates "fail"
     });
   },
 };

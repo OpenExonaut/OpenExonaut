@@ -15,12 +15,6 @@ configReload=20
 # Float, non-reloadable
 debugGFXScale=1
 
-# Number of non-tutorial maps.
-# When making custom map definitions, set the first multiplayer map to world_1,
-# then set the rest of the multiplayer maps to be contiguous world_n thereafter.
-# Integer, non-reloadable, 9 in vanilla.
-mapCount=9
-
 # Whether to throw runtime exceptions for invalid user input.
 # If false, invalid user input is silently ignored.
 # Boolean

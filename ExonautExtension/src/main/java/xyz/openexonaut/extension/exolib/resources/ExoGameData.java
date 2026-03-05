@@ -6,6 +6,8 @@
 
 package xyz.openexonaut.extension.exolib.resources;
 
+import java.nio.file.*;
+
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
 
@@ -19,7 +21,7 @@ public final class ExoGameData {
 
     private ExoGameData() {}
 
-    public static void init(JsonNode json) {
+    public static void init(JsonNode json, Path worldFolder, float debugGFXScale) {
         ArrayNode levelData = (ArrayNode) json.get("levels");
         ArrayNode weaponData = (ArrayNode) json.get("weapons");
         ArrayNode modData = (ArrayNode) json.get("mods");
@@ -42,6 +44,9 @@ public final class ExoGameData {
         for (int i = 0; i < suits.length; i++) {
             suits[i] = new ExoSuit(suitData.get(i));
         }
+
+        ArrayNode spawnPickupData = (ArrayNode) json.get("spawnPickup");
+        ExoMapManager.init(worldFolder, spawnPickupData, debugGFXScale);
     }
 
     public static ExoWeapon getWeapon(int id) {

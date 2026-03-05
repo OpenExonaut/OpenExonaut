@@ -1,11 +1,17 @@
 var config = {};
 config.httpserver = {};
+config.sfs2xserver = {};
 config.sockpol = {};
 config.email = {};
 
 config.httpserver.port = 80;
 config.httpserver.mongouri = 'mongodb://admin:password@127.0.0.1:27017';
-config.httpserver.url = 'http://127.0.0.1';
+config.httpserver.address = '127.0.0.1';
+config.httpserver.reverseProxied = false;
+
+config.sfs2xserver.clearPort = 8080;
+config.sfs2xserver.securePort = 8443;
+config.sfs2xserver.address = '127.0.0.1';
 
 config.sockpol.enable = true;
 config.sockpol.port = 843;

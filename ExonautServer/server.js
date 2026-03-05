@@ -81,9 +81,7 @@ MongoClient.connect(config.httpserver.mongouri, {
   .then((mongoClient) => {
     const playerCollection = mongoClient.db('openexonaut').collection('users');
 
-    ensureConfFile('client.props', 'static');
     ensureConfFile('crossdomain.xml', 'static');
-    ensureConfFile('director.json', 'static'); // this file being pointed to by `client.props` is a minor hack
     ensureConfFile('News.txt', 'static');
 
     if (!fs.existsSync('static/suits')) {
@@ -104,9 +102,22 @@ MongoClient.connect(config.httpserver.mongouri, {
     app.use(cors());
     app.use(express.json());
     app.use(express.text());
+    if (config.httpserver.reverseProxied) {
+      app.enable('trust proxy');
+    }
 
     app.get('/exonaut/gamedata.json', (req, res) => {
       res.json(gameData);
+    });
+
+    app.get('/director.json', (req, res) => {
+      res.json({
+        ip: config.sfs2xserver.address,
+        port: req.secure
+          ? config.sfs2xserver.securePort
+          : config.sfs2xserver.clearPort,
+        secure: req.secure,
+      });
     });
 
     app.get('/', (req, res) => {
@@ -266,7 +277,7 @@ MongoClient.connect(config.httpserver.mongouri, {
           req.body.token,
           playerCollection,
           config.email,
-          config.httpserver.url,
+          `${req.protocol}://${config.httpserver.address}`,
           transport
         )
         .then((data) => {
@@ -302,7 +313,7 @@ MongoClient.connect(config.httpserver.mongouri, {
           req.body.email,
           playerCollection,
           config.email,
-          config.httpserver.url,
+          `${req.protocol}://${config.httpserver.address}`,
           transport
         )
         .then((data) => {
@@ -398,8 +409,7 @@ MongoClient.connect(config.httpserver.mongouri, {
       postRequest
         .handleLogin(req.body.TEGid, req.body.authid, playerCollection)
         .then((data) => {
-          res.set('Content-Type', 'text/xml');
-          res.send(data);
+          res.json(data);
         })
         .catch((e) => {
           console.log(e);
@@ -416,8 +426,7 @@ MongoClient.connect(config.httpserver.mongouri, {
           gameData
         )
         .then((data) => {
-          res.set('Content-Type', 'text/xml');
-          res.send(data);
+          res.json(data);
         })
         .catch(console.error);
     });
@@ -433,8 +442,7 @@ MongoClient.connect(config.httpserver.mongouri, {
           gameData
         )
         .then((data) => {
-          res.set('Content-Type', 'text/xml');
-          res.send(data);
+          res.json(data);
         })
         .catch(console.error);
     });
@@ -444,8 +452,7 @@ MongoClient.connect(config.httpserver.mongouri, {
       postRequest
         .handleMetric()
         .then((data) => {
-          res.set('Content-Type', 'text/xml');
-          res.send(data);
+          res.json(data);
         })
         .catch(console.error);
     });
@@ -455,8 +462,7 @@ MongoClient.connect(config.httpserver.mongouri, {
       postRequest
         .handleMissionProgress(req.body.exId)
         .then((data) => {
-          res.set('Content-Type', 'text/xml');
-          res.send(data);
+          res.json(data);
         })
         .catch(console.error);
     });
