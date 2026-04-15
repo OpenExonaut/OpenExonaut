@@ -8,16 +8,16 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.2",
-    "cors": "^2.8.5",
-    "ejs": "^4.0.1",
+    "cors": "^2.8.6",
+    "ejs": "^5.0.2",
     "express": "^4.22.1",
-    "mongodb": "^7.0.0",
-    "nodemailer": "^7.0.12"
+    "mongodb": "^7.1.1",
+    "nodemailer": "^8.0.5"
   },
   "devDependencies": {
     "extract-zip": "^2.0.1",
-    "node-downloader-helper": "^2.1.9",
-    "prettier": "^3.2.5"
+    "node-downloader-helper": "^2.1.11",
+    "prettier": "^3.8.3"
   },
   "scripts": {
     "check": "prettier --check .",
