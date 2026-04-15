@@ -26,9 +26,9 @@ public final class ExoMapManager {
     private ExoMapManager() {}
 
     public static void init(Path worldsFolder, ArrayNode spawnPickups, float debugGFXScale) {
-        maps = new ExoMap[spawnPickups.size()];
-
         // world_0 exists, but is the tutorial world, and the tutorial is always run locally
+        maps = new ExoMap[spawnPickups.size() - 1];
+
         for (int i = 1; i < spawnPickups.size(); i++) {
             try {
                 maps[i - 1] =

@@ -51,6 +51,8 @@ public class ExoGame extends ExoTickable implements Runnable {
     private boolean atlasWon = false;
     private int mostHacks = 0;
 
+    private boolean resetPlayerVars = false;
+
     public ExoGame(Room room) {
         this.room = room;
         this.scheduler = SmartFoxServer.getInstance().getTaskScheduler();
@@ -89,16 +91,6 @@ public class ExoGame extends ExoTickable implements Runnable {
             List<RoomVariable> roomVars = new ArrayList<>(ExoEntryUtils.initialRoomVars);
             roomVars.add(new SFSRoomVariable("stop", null)); // delete variable
             setVariables(roomVars);
-
-            for (User u : room.getPlayersList()) {
-                ExoPlayer player = (ExoPlayer) u.getProperty("ExoPlayer");
-
-                List<UserVariable> userVars = new ArrayList<>(ExoEntryUtils.initialUserVars);
-                userVars.add(new SFSUserVariable("health", player.getSuit().Health));
-                player.setVariables(userVars);
-
-                player.reset();
-            }
         }
 
         world = new ExoWorld(ExoMapManager.getMap(room.getVariable("mapId").getIntValue()), room);
@@ -108,6 +100,8 @@ public class ExoGame extends ExoTickable implements Runnable {
                 spawnPlayer(u);
             }
         }
+
+        resetPlayerVars = false;
     }
 
     public void destroy() {
@@ -382,6 +376,17 @@ public class ExoGame extends ExoTickable implements Runnable {
 
             if (queueTime >= 0f) {
                 init();
+            } else if (queueTime >= -1f && !resetPlayerVars) {
+                for (User u : room.getPlayersList()) {
+                    ExoPlayer player = (ExoPlayer) u.getProperty("ExoPlayer");
+
+                    List<UserVariable> userVars = new ArrayList<>(ExoEntryUtils.initialUserVars);
+                    userVars.add(new SFSUserVariable("health", player.getSuit().Health));
+                    player.setVariables(userVars);
+
+                    player.reset();
+                }
+                resetPlayerVars = true;
             }
         }
 
